@@ -1,0 +1,239 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Utilities ──────────────────────────────────────────────────────── */
+.scrollbar-hide          { -ms-overflow-style:none; scrollbar-width:none; }
+.scrollbar-hide::-webkit-scrollbar { display:none; }
+
+/* ── Base font ──────────────────────────────────────────────────────── */
+html {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIGHT THEME — html.light
+
+   Especificidade: "html.light [class*=...]" = (0,2,1)
+   Tailwind classes = (0,1,0) → overrides ganham sem !important.
+   Transições CSS funcionam normalmente sem !important.
+   ══════════════════════════════════════════════════════════════════════ */
+
+html.light { background-color: #f5f5f7; color: #1d1d1f; }
+html.dark  { background-color: #1a1a1c; color: #ffffff; }
+
+/* ── Fundos de página ─────────────────────────────────────────────── */
+html.light [class*="bg-[#080808]"] { background-color: #f5f5f7; }
+html.light [class*="bg-[#0a0a0a]"] { background-color: #ebebeb; }
+
+/* ── Sidebar / modais / painéis — branco puro ─────────────────────── */
+html.light [class*="bg-[#0c0c0c]"],
+html.light [class*="bg-[#0d0d0d]"],
+html.light [class*="bg-[#0f0f0f]"] { background-color: #ffffff; }
+
+/* ── Cards — branco com sombra sutil apenas quando rounded ─────────── */
+html.light [class*="bg-[#111111]"],
+html.light [class*="bg-[#111]"]    { background-color: #ffffff; }
+html.light [class*="bg-[#111111]"][class*="rounded"],
+html.light [class*="bg-[#111]"][class*="rounded"] {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 2px 12px rgba(0,0,0,0.04);
+}
+
+/* ── Superfícies secundárias e inputs ─────────────────────────────── */
+/* #171717 — inputs em cards brancos: cinza claro */
+html.light [class*="bg-[#171717]"]  { background-color: #f5f5f7; }
+/* #141414 — inputs secundários / painéis internos */
+html.light [class*="bg-[#141414]"]  { background-color: #f0f0f5; }
+/* #161616 — hover de cards / superfícies terciárias */
+html.light [class*="bg-[#161616]"]  { background-color: #ebebf0; }
+/* #1a1a1a — dropdowns flutuantes e inputs deep */
+html.light [class*="bg-[#1a1a1a]"]  { background-color: #ffffff; }
+/* #1c1c1c — mini-botões (qty +/-), pills de ação */
+html.light [class*="bg-[#1c1c1c]"]  { background-color: #ebebf0; }
+/* #272727 — elementos de contraste extra */
+html.light [class*="bg-[#272727]"]  { background-color: #e8e8ed; }
+/* #2a2a2a — toggle track inativo (iOS-style) */
+html.light [class*="bg-[#2a2a2a]"]  { background-color: #d1d1d6; }
+
+/* ── Hover de fundo ─────────────────────────────────────────────────── */
+html.light [class*="hover:bg-[#111111]"]:hover,
+html.light [class*="hover:bg-[#161616]"]:hover { background-color: #f0f0f5; }
+html.light [class*="hover:bg-[#141414]"]:hover  { background-color: #e8e8ed; }
+html.light [class*="hover:bg-[#1a1a1a]"]:hover  { background-color: #f5f5f7; }
+html.light [class*="hover:bg-[#1c1c1c]"]:hover  { background-color: #e5e5ea; }
+/* hover em itens de dropdown */
+html.light [class*="hover:bg-[#272727]"]:hover  { background-color: #f0f0f5; }
+html.light [class*="hover:bg-[#2a2a2a]"]:hover  { background-color: #e5e5ea; }
+
+/* ── Bordas ──────────────────────────────────────────────────────────── */
+html.light [class*="border-[#1c1c1c]"]  { border-color: #e5e5ea; }
+html.light [class*="border-[#1e1e1e]"]  { border-color: #e5e5ea; }
+html.light [class*="border-[#222]"]     { border-color: #d2d2d7; }
+html.light [class*="border-[#222222]"]  { border-color: #d2d2d7; }
+html.light [class*="border-[#272727]"]  { border-color: #d2d2d7; }
+html.light [class*="border-[#2a2a2a]"]  { border-color: #d2d2d7; }
+html.light [class*="border-[#333]"]     { border-color: #c7c7cc; }
+html.light [class*="border-[#3a3a3a]"]  { border-color: #c7c7cc; }
+
+/* ── Hover de bordas ─────────────────────────────────────────────────── */
+html.light [class*="hover:border-[#2a2a2a]"]:hover { border-color: #b8b8bc; }
+html.light [class*="hover:border-[#3a3a3a]"]:hover { border-color: #aeaeb2; }
+
+/* ── Tipografia ──────────────────────────────────────────────────────── */
+html.light .text-white    { color: #1d1d1f; }
+html.light .text-gray-100 { color: #1d1d1f; }
+html.light .text-gray-200 { color: #1d1d1f; }
+html.light .text-gray-300 { color: #3a3a3c; }
+html.light .text-gray-400 { color: #6e6e73; }
+html.light .text-gray-500 { color: #6e6e73; }
+html.light .text-gray-600 { color: #8e8e93; }
+html.light .text-gray-700 { color: #3a3a3c; }
+
+/* ── Hover de texto — CRÍTICO ─────────────────────────────────────────
+   dark-mode usa hover:text-white/gray-200/300 que ficam invisíveis em
+   fundo claro. Todos mapeados para tons escuros legíveis.
+   ─────────────────────────────────────────────────────────────────── */
+html.light [class*="hover:text-white"]:hover    { color: #1d1d1f; }
+html.light [class*="hover:text-gray-100"]:hover { color: #1d1d1f; }
+html.light [class*="hover:text-gray-200"]:hover { color: #1d1d1f; }
+html.light [class*="hover:text-gray-300"]:hover { color: #3a3a3c; }
+html.light [class*="hover:text-gray-400"]:hover { color: #6e6e73; }
+
+/* ── Cor de acento teal — ligeiramente mais escuro no claro ─────────── */
+html.light [class*="text-[#28AEA4]"]  { color: #1d9992; }
+html.light [class*="text-[#3cbdb6]"]  { color: #1d9992; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   EXCEÇÕES — texto BRANCO em fundos coloridos
+   Especificidade (0,3,1) > (0,2,1) → vence sem !important
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Mesmo elemento: bg teal + text-white */
+html.light [class*="bg-[#28AEA4]"][class*="text-white"],
+html.light [class*="bg-[#3cbdb6]"][class*="text-white"],
+html.light [class*="bg-[#1d9992]"][class*="text-white"] { color: #ffffff; }
+
+/* Filho text-white dentro de elemento com bg teal (logo "K") */
+html.light [class*="bg-[#28AEA4]"] .text-white,
+html.light [class*="bg-[#28AEA4]"] [class*="text-white"] { color: #ffffff; }
+
+/* Botões vermelho/danger com texto branco */
+html.light [class*="bg-red-5"][class*="text-white"],
+html.light [class*="bg-red-6"][class*="text-white"],
+html.light [class*="bg-red-7"][class*="text-white"] { color: #ffffff; }
+
+/* Hover em botões teal: texto permanece branco */
+html.light [class*="hover:bg-[#1d9992]"][class*="text-white"],
+html.light [class*="hover:bg-[#28AEA4]"][class*="text-white"],
+html.light [class*="hover:bg-[#3cbdb6]"][class*="text-white"] { color: #ffffff; }
+
+/* Botão desabilitado teal: tom claro */
+html.light [class*="disabled:bg-[#0c5a55]"]:disabled { background-color: #c0e8e5 !important; }
+html.light [class*="disabled:text-[#6edbd5]"]:disabled { color: #6e6e73 !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   INLINE <style> BLOCKS — especificidade superior obrigatória
+   ══════════════════════════════════════════════════════════════════════ */
+html.light .field-input,
+html.light .inp {
+  background-color: #f5f5f7 !important;
+  border-color: #d2d2d7 !important;
+  color: #1d1d1f !important;
+}
+html.light .field-input:focus,
+html.light .inp:focus {
+  background-color: #ffffff !important;
+  border-color: #28AEA4 !important;
+  outline: none !important;
+}
+html.light .field-input option,
+html.light .inp option,
+html.light select.inp option {
+  background-color: #ffffff !important;
+  color: #1d1d1f !important;
+}
+html.light .field-label,
+html.light .label-xs { color: #6e6e73 !important; }
+
+/* Inputs Tailwind inline com text-white */
+html.light [class*="bg-[#141414]"][class*="text-white"] { color: #1d1d1f; }
+html.light [class*="bg-[#171717]"][class*="text-white"] { color: #1d1d1f; }
+html.light [class*="bg-[#1a1a1a]"][class*="text-white"] { color: #1d1d1f; }
+html.light [class*="bg-[#1c1c1c]"][class*="text-white"] { color: #1d1d1f; }
+html.light [class*="bg-[#272727]"][class*="text-white"] { color: #1d1d1f; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   CORES SEMÂNTICAS — ajuste de contraste para fundo claro
+   No dark mode, text-*-400 são claros sobre fundo escuro — ideal.
+   No light mode, ficam muito pálidos. Ajustar para tons escuros legíveis.
+   ══════════════════════════════════════════════════════════════════════ */
+html.light .text-blue-400,
+html.light .text-blue-500    { color: #1d4ed8; }   /* blue-700 */
+html.light .text-yellow-400,
+html.light .text-amber-400   { color: #b45309; }   /* amber-700 */
+html.light .text-orange-400  { color: #c2410c; }   /* orange-700 */
+html.light .text-green-400,
+html.light .text-green-500   { color: #15803d; }   /* green-700 */
+html.light .text-emerald-400,
+html.light .text-emerald-500 { color: #0d9488; }   /* teal-600 */
+html.light .text-teal-400    { color: #0f766e; }   /* teal-700 */
+html.light .text-purple-400,
+html.light .text-violet-400  { color: #7c3aed; }   /* violet-600 */
+html.light .text-red-400     { color: #dc2626; }   /* red-600 */
+html.light .text-pink-400    { color: #db2777; }   /* pink-600 */
+
+/* ── Placeholders ─────────────────────────────────────────────────────── */
+html.light ::placeholder { color: #aeaeb2 !important; opacity: 1; }
+
+/* ── Badges de status ─────────────────────────────────────────────────── */
+html.light [class*="bg-emerald-950"]  { background-color: rgba(5,150,105,0.08) !important; }
+html.light [class*="border-emerald-8"]{ border-color: rgba(5,150,105,0.20) !important; }
+html.light [class*="bg-red-950"]      { background-color: rgba(254,242,242,1) !important; }
+html.light [class*="border-red-8"]    { border-color: rgba(239,68,68,0.25) !important; }
+
+/* ── SVG / gráficos ──────────────────────────────────────────────────── */
+html.light svg line[stroke="#1c1c1c"] { stroke: #e5e5ea; }
+html.light svg text[fill="#4b5563"]   { fill: #6e6e73; }
+html.light svg text[fill="#555"]      { fill: #6e6e73; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DARK THEME (html.dark) — Apple dark: cinzas médios, não preto puro
+   ══════════════════════════════════════════════════════════════════════ */
+
+html.dark [class*="bg-[#080808]"]  { background-color: #1a1a1c; }
+html.dark [class*="bg-[#0a0a0a]"]  { background-color: #1e1e20; }
+
+html.dark [class*="bg-[#0c0c0c]"],
+html.dark [class*="bg-[#0d0d0d]"],
+html.dark [class*="bg-[#0f0f0f]"]  { background-color: #242426; }
+
+html.dark [class*="bg-[#111111]"],
+html.dark [class*="bg-[#111]"]     { background-color: #2c2c2e; }
+
+html.dark [class*="bg-[#141414]"]  { background-color: #2f2f31; }
+html.dark [class*="bg-[#161616]"]  { background-color: #333335; }
+html.dark [class*="bg-[#171717]"]  { background-color: #2c2c2e; }
+html.dark [class*="bg-[#1a1a1a]"]  { background-color: #363638; }
+html.dark [class*="bg-[#1c1c1c]"]  { background-color: #38383a; }
+html.dark [class*="bg-[#272727]"]  { background-color: #3a3a3c; }
+html.dark [class*="bg-[#2a2a2a]"]  { background-color: #48484a; }
+
+html.dark [class*="hover:bg-[#111111]"]:hover,
+html.dark [class*="hover:bg-[#161616]"]:hover { background-color: #333335; }
+html.dark [class*="hover:bg-[#141414]"]:hover  { background-color: #363638; }
+html.dark [class*="hover:bg-[#1a1a1a]"]:hover  { background-color: #3a3a3c; }
+html.dark [class*="hover:bg-[#272727]"]:hover   { background-color: #444446; }
+
+html.dark [class*="border-[#1c1c1c]"]  { border-color: #38383a; }
+html.dark [class*="border-[#1e1e1e]"]  { border-color: #38383a; }
+html.dark [class*="border-[#222]"]     { border-color: #3a3a3c; }
+html.dark [class*="border-[#272727]"]  { border-color: #48484a; }
+html.dark [class*="border-[#2a2a2a]"]  { border-color: #48484a; }
+html.dark [class*="border-[#3a3a3a]"]  { border-color: #545456; }
+
+html.dark [class*="text-[#28AEA4]"]    { color: #6edbd5; }
+html.dark [class*="text-[#1d9992]"]    { color: #6edbd5; }
+html.dark [class*="bg-[#28AEA4]/10"]   { background-color: rgba(110,219,213,0.12); }
