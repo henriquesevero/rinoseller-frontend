@@ -101,6 +101,8 @@ export default function OrcamentosPage() {
   const [editingPriceVal, setEditingPriceVal] = useState('')
   const priceInputRef = useRef<HTMLInputElement>(null)
 
+  const [stockWarning, setStockWarning] = useState('')
+
   const load = async () => {
     try {
       const [q, c, p] = await Promise.all([getQuotes(), getClients(), getProducts()])
@@ -151,6 +153,12 @@ export default function OrcamentosPage() {
   // ── Handlers — produto ────────────────────────────────────────────────────────
 
   const selectProduct = (prod: Product) => {
+    if (prod.stock_quantity === 0) {
+      setStockWarning(`"${prod.name}" está sem estoque e não pode ser adicionado.`)
+      setProdSearch(''); setProdOpen(false)
+      return
+    }
+    setStockWarning('')
     setCart(prev => {
       const ex = prev.find(e => e.product_id === prod.id)
       if (ex) return prev.map(e => e.product_id === prod.id ? { ...e, quantity: e.quantity + 1 } : e)
@@ -512,8 +520,11 @@ export default function OrcamentosPage() {
                     <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-hidden z-10 shadow-xl">
                       {filteredProducts.map(p => (
                         <button key={p.id} onMouseDown={() => selectProduct(p)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[#272727] transition-colors text-left">
-                          <span className="text-gray-200">{p.name}</span>
+                          className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left ${p.stock_quantity === 0 ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : 'hover:bg-[#272727]'}`}>
+                          <span className="text-gray-200 flex items-center gap-2">
+                            {p.name}
+                            {p.stock_quantity === 0 && <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">Sem estoque</span>}
+                          </span>
                           <span className="text-[#28AEA4] ml-4 flex-shrink-0">{fmt(p.price)}</span>
                         </button>
                       ))}
@@ -527,6 +538,9 @@ export default function OrcamentosPage() {
                     </div>
                   )}
                 </div>
+                {stockWarning && (
+                  <p className="text-xs text-red-400 mt-1">{stockWarning}</p>
+                )}
 
                 {/* ── Formulário novo produto (inline) ── */}
                 {showNewProd && (
