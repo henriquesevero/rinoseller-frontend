@@ -456,8 +456,8 @@ export function OverviewPage() {
           </div>
         ) : (
           <>
-            {/* ── Linha 1: Faturamento + Gráfico lado a lado ── */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* ── Linha 1: Faturamento + Gráfico (empilhados no celular) ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Card faturamento — mesmo tamanho dos outros */}
               <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-5 flex flex-col justify-between">
                 <div>
@@ -499,24 +499,24 @@ export function OverviewPage() {
 
             {/* ── Linha 2: Métricas ── */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-5">
+              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Em Aberto</p>
-                <p className="text-2xl font-bold text-blue-400 tabular-nums">{hv(formatBRL(emAberto))}</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-400 tabular-nums truncate">{hv(formatBRL(emAberto))}</p>
                 <p className="text-xs text-gray-600 mt-1">{approved.length} aprovado(s)</p>
               </div>
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-5">
+              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Aguardando</p>
-                <p className="text-2xl font-bold text-yellow-400 tabular-nums">{hv(String(pending.length))}</p>
+                <p className="text-lg sm:text-2xl font-bold text-yellow-400 tabular-nums truncate">{hv(String(pending.length))}</p>
                 <p className="text-xs text-gray-600 mt-1">orçamento(s)</p>
               </div>
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-5">
+              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Clientes</p>
-                <p className="text-2xl font-bold text-white tabular-nums">{hv(String(clients.length))}</p>
+                <p className="text-lg sm:text-2xl font-bold text-white tabular-nums truncate">{hv(String(clients.length))}</p>
                 <p className="text-xs text-gray-600 mt-1">cadastrados</p>
               </div>
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-5">
+              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Pedidos de Venda</p>
-                <p className="text-2xl font-bold text-white tabular-nums">{hv(String(pedidosVenda.length))}</p>
+                <p className="text-lg sm:text-2xl font-bold text-white tabular-nums truncate">{hv(String(pedidosVenda.length))}</p>
                 <p className="text-xs text-gray-600 mt-1">
                   {quotes.filter(q => q.status === 'Faturado' || q.status === 'Entregue/Faturado').length} faturado(s)
                 </p>
