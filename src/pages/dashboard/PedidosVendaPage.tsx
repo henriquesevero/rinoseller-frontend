@@ -52,20 +52,22 @@ export default function PedidosVendaPage() {
   const [confirmInvoice, setConfirmInvoice] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete]   = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>((location.state as { highlightId?: string } | null)?.highlightId ?? null)
+  const [loading, setLoading] = useState(true)
 
   const load = async () => {
-    try {
-      const [all, cls, payments] = await Promise.all([getQuotes(), getClients(), getAllPayments()])
-      setQuotes(all.filter(q =>
+    const [allRes, clsRes, paymentsRes] = await Promise.allSettled([getQuotes(), getClients(), getAllPayments()])
+    if (allRes.status === 'fulfilled') {
+      setQuotes(allRes.value.filter(q =>
         q.status === 'Aprovado' ||
         q.status === 'Entregue' ||
         q.status === 'Faturado' ||
         q.status === 'Faturado Gradual' ||
         q.status === 'Entregue/Faturado'
       ))
-      setClients(cls)
-      setClientPayments(payments ?? [])
-    } catch { /* mantém dados anteriores em caso de erro */ }
+    }
+    if (clsRes.status === 'fulfilled') setClients(clsRes.value)
+    if (paymentsRes.status === 'fulfilled') setClientPayments(paymentsRes.value ?? [])
+    setLoading(false)
   }
 
   useEffect(() => { load() }, [])
@@ -199,7 +201,11 @@ export default function PedidosVendaPage() {
       </div>
 
       {/* Orders */}
-      {sorted.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="w-7 h-7 border-2 border-[#28AEA4]/30 border-t-[#28AEA4] rounded-full animate-spin" />
+        </div>
+      ) : sorted.length === 0 ? (
         <div className="text-center py-16 text-gray-600">
           <p className="text-lg">Nenhum pedido encontrado</p>
           <p className="text-sm mt-1">Aprove orçamentos para que apareçam aqui</p>

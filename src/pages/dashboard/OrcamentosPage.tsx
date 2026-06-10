@@ -102,12 +102,14 @@ export default function OrcamentosPage() {
   const priceInputRef = useRef<HTMLInputElement>(null)
 
   const [stockWarning, setStockWarning] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const load = async () => {
-    try {
-      const [q, c, p] = await Promise.all([getQuotes(), getClients(), getProducts()])
-      setQuotes(q); setClients(c); setProducts(p)
-    } catch { /* mantém dados anteriores em caso de erro */ }
+    const [qRes, cRes, pRes] = await Promise.allSettled([getQuotes(), getClients(), getProducts()])
+    if (qRes.status === 'fulfilled') setQuotes(qRes.value)
+    if (cRes.status === 'fulfilled') setClients(cRes.value)
+    if (pRes.status === 'fulfilled') setProducts(pRes.value)
+    setLoading(false)
   }
 
   useEffect(() => { load() }, [])
@@ -333,7 +335,11 @@ export default function OrcamentosPage() {
       </div>
 
       {/* Quote list */}
-      {sorted.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="w-7 h-7 border-2 border-[#28AEA4]/30 border-t-[#28AEA4] rounded-full animate-spin" />
+        </div>
+      ) : sorted.length === 0 ? (
         <div className="text-center py-16 text-gray-600">
           <p className="text-lg">Nenhum orçamento encontrado</p>
         </div>
