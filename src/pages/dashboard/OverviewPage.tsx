@@ -396,7 +396,7 @@ export function OverviewPage() {
     q.status === 'Aprovado' || q.status === 'Entregue' || q.status === 'Faturado' || q.status === 'Entregue/Faturado'
   )
   const emAberto       = approved.reduce((s, q) => s + q.total, 0)
-  const lowStock       = products.filter(p => p.stock_quantity <= 3)
+  const lowStock       = products.filter(p => !p.is_kit && p.stock_quantity <= 3)
 
   // ── Dashboard de clientes ──────────────────────────────────────────────────
   const clientStats = clients.map(c => {

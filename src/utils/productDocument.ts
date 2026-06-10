@@ -74,11 +74,12 @@ export function exportProductsPDF(products: Product[]) {
   })
 
   const totalProducts = sorted.length
-  const lowStock      = sorted.filter(p => p.stock_quantity > 0 && p.stock_quantity <= 3).length
-  const zeroStock     = sorted.filter(p => p.stock_quantity === 0).length
+  const lowStock      = sorted.filter(p => !p.is_kit && p.stock_quantity > 0 && p.stock_quantity <= 3).length
+  const zeroStock     = sorted.filter(p => !p.is_kit && p.stock_quantity === 0).length
 
   const rows = sorted.map(p => {
-    const stockClass = p.stock_quantity === 0 ? 'zero' : p.stock_quantity <= 3 ? 'low' : ''
+    const stockClass = p.is_kit ? '' : p.stock_quantity === 0 ? 'zero' : p.stock_quantity <= 3 ? 'low' : ''
+    const stockCell  = p.is_kit ? 'Kit' : String(p.stock_quantity)
     return `
       <tr>
         <td class="code">${p.code ?? ''}</td>
@@ -86,7 +87,7 @@ export function exportProductsPDF(products: Product[]) {
         <td class="muted">${p.category}</td>
         <td class="r num">${formatBRL(p.price)}</td>
         <td class="r num muted">${formatBRL(p.cost_price)}</td>
-        <td class="c num ${stockClass}">${p.stock_quantity}</td>
+        <td class="c num ${stockClass}">${stockCell}</td>
       </tr>
     `
   }).join('')

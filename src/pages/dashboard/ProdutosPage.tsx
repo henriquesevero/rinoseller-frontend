@@ -230,7 +230,7 @@ export function ProdutosPage() {
   const filtered = products
     .filter(p => {
       if (filterCat === 'Todos') return true
-      if (filterCat === 'Estoque Baixo') return p.stock_quantity <= 3
+      if (filterCat === 'Estoque Baixo') return !p.is_kit && p.stock_quantity <= 3
       return p.category === filterCat
     })
     .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
