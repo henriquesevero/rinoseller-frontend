@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { getQuotes, getClients, deliverQuote, invoiceQuote, deleteQuote, getAllPayments } from '../../api/client'
+import { getQuotes, getClients, getProducts, createQuote, approveQuote, deliverQuote, invoiceQuote, deleteQuote, getAllPayments } from '../../api/client'
 import { downloadQuotePDF, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
 import { withMinDuration } from '../../utils/loading'
-import type { Quote, Client, ClientPayment } from '../../types'
+import type { Quote, Client, Product, ClientPayment } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { LoadingOverlay } from '../../components/LoadingOverlay'
+import { QuoteFormModal, type QuoteFormPayload } from '../../components/QuoteFormModal'
 import { useSettings } from '../../contexts/SettingsContext'
 
 const STATUS_COLORS_DARK: Record<string, string> = {
@@ -47,9 +48,11 @@ export default function PedidosVendaPage() {
   const STATUS_COLORS = theme === 'light' ? STATUS_COLORS_LIGHT : STATUS_COLORS_DARK
   const [quotes, setQuotes]   = useState<Quote[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>([])
   const [activeTab, setActiveTab] = useState<TabValue>('Todos')
   const [search, setSearch] = useState('')
+  const [showModal, setShowModal] = useState(false)
   const [confirmDeliver, setConfirmDeliver] = useState<string | null>(null)
   const [confirmInvoice, setConfirmInvoice] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete]   = useState<string | null>(null)
@@ -58,8 +61,8 @@ export default function PedidosVendaPage() {
   const [actionLoading, setActionLoading] = useState('')
 
   const load = async () => {
-    const [allRes, clsRes, paymentsRes] = await withMinDuration(
-      Promise.allSettled([getQuotes(), getClients(), getAllPayments()])
+    const [allRes, clsRes, prodRes, paymentsRes] = await withMinDuration(
+      Promise.allSettled([getQuotes(), getClients(), getProducts(), getAllPayments()])
     )
     if (allRes.status === 'fulfilled') {
       setQuotes(allRes.value.filter(q =>
@@ -71,6 +74,7 @@ export default function PedidosVendaPage() {
       ))
     }
     if (clsRes.status === 'fulfilled') setClients(clsRes.value)
+    if (prodRes.status === 'fulfilled') setProducts(prodRes.value)
     if (paymentsRes.status === 'fulfilled') setClientPayments(paymentsRes.value ?? [])
     setLoading(false)
   }
@@ -153,12 +157,27 @@ export default function PedidosVendaPage() {
     finally { setActionLoading('') }
   }
 
+  const handleCreate = async (payload: QuoteFormPayload) => {
+    const created = await createQuote(payload)
+    await approveQuote(created.id)
+    await load()
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Pedidos de Venda</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Acompanhe aprovados, entregues e faturados</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Pedidos de Venda</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Acompanhe aprovados, entregues e faturados</p>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#28AEA4] text-white rounded-xl text-sm font-semibold hover:bg-[#1d9992] transition-colors"
+        >
+          <span className="text-lg leading-none">+</span>
+          Novo Pedido
+        </button>
       </div>
 
       {/* Summary cards */}
@@ -225,7 +244,7 @@ export default function PedidosVendaPage() {
       ) : sorted.length === 0 ? (
         <div className="text-center py-16 text-gray-600">
           <p className="text-lg">Nenhum pedido encontrado</p>
-          <p className="text-sm mt-1">Aprove orçamentos para que apareçam aqui</p>
+          <p className="text-sm mt-1">Crie um novo pedido ou aprove um orçamento para que apareça aqui</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -402,6 +421,18 @@ export default function PedidosVendaPage() {
         danger
         onConfirm={doDelete}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <QuoteFormModal
+        open={showModal}
+        title="Novo Pedido de Venda"
+        submitLabel="Criar Pedido"
+        savingLabel="Criando…"
+        clients={clients}
+        products={products}
+        setProducts={setProducts}
+        onSubmit={handleCreate}
+        onClose={() => setShowModal(false)}
       />
     </div>
   )
