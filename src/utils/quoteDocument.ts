@@ -168,8 +168,8 @@ function buildBodyContent(quote: Quote, client?: Client, kind: 'orcamento' | 'pe
 
 async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<Blob> {
   const container = document.createElement('div')
-  // Mantém no viewport (sem scroll) mas invisível — evita o flash de tela
-  container.style.cssText = 'position:fixed;left:0;top:0;width:794px;background:#fff;opacity:0;pointer-events:none;z-index:9999;'
+  // Renderiza fora da tela (mas totalmente opaco) — opacity:0 faz o html2canvas capturar em branco
+  container.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff;pointer-events:none;'
 
   const styleEl = document.createElement('style')
   styleEl.textContent = DOC_CSS
