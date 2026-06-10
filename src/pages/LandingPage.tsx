@@ -347,7 +347,7 @@ export function LandingPage() {
                   </div>
 
                   {/* Metric cards */}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { label: 'Faturamento', val: 'R$ 18.420', color: 'text-[#28AEA4]', trend: '+12%' },
                       { label: 'Em Aberto',   val: 'R$ 3.200',  color: 'text-blue-400',   trend: '4 pedidos' },
@@ -363,8 +363,8 @@ export function LandingPage() {
                   </div>
 
                   {/* Chart + ranking */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2 bg-[#111111] border border-white/[0.06] rounded-xl p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="sm:col-span-2 bg-[#111111] border border-white/[0.06] rounded-xl p-3">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-[8px] font-semibold text-gray-600 uppercase tracking-wider">Evolução</p>
                         <div className="flex items-center gap-1">
