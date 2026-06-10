@@ -5,10 +5,11 @@ import {
   deleteClient, getClientPaymentHistory, invoiceQuote, deliverQuote,
   clearClientPaymentHistory, clearClientOrders, clearClientQuotes,
 } from '../../api/client'
-import { printQuote } from '../../utils/quoteDocument'
+import { downloadQuotePDF } from '../../utils/quoteDocument'
 import { exportClientReportPDF } from '../../utils/clientDocument'
 import type { Client, Order, Quote, ClientPayment } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
+import { LoadingOverlay } from '../../components/LoadingOverlay'
 import { useSettings } from '../../contexts/SettingsContext'
 
 function formatBRL(v: number) {
@@ -99,6 +100,7 @@ export function ClienteDetalhePage() {
     payment_cycle_days: 0, payment_cycle_amount: 0, debt_limit: 0,
   })
   const [customCycleDays, setCustomCycleDays] = useState('')
+  const [actionLoading, setActionLoading] = useState('')
 
   const load = useCallback(async () => {
     if (!id) return
@@ -207,8 +209,10 @@ export function ClienteDetalhePage() {
     const quoteId = confirmInvoiceQuote
     setConfirmInvoiceQuote(null)
     if (!quoteId) return
+    setActionLoading('Marcando como faturado…')
     try { await invoiceQuote(quoteId); await load() }
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro') }
+    finally { setActionLoading('') }
   }
 
   const [confirmDeliverQuote, setConfirmDeliverQuote] = useState<string | null>(null)
@@ -216,8 +220,17 @@ export function ClienteDetalhePage() {
     const quoteId = confirmDeliverQuote
     setConfirmDeliverQuote(null)
     if (!quoteId) return
+    setActionLoading('Marcando como entregue…')
     try { await deliverQuote(quoteId); await load() }
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro ao marcar como entregue') }
+    finally { setActionLoading('') }
+  }
+
+  const handleDownloadPDF = async (q: Quote) => {
+    if (!client) return
+    setActionLoading('Gerando PDF…')
+    try { await downloadQuotePDF(q, [client]) }
+    finally { setActionLoading('') }
   }
 
   const handleEdit = async () => {
@@ -569,11 +582,11 @@ export function ClienteDetalhePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => client && printQuote(q, [client])}
+                        onClick={() => handleDownloadPDF(q)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 rounded-lg text-xs font-medium hover:text-white hover:border-[#3a3a3a] transition-colors"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                        Imprimir nota
+                        Gerar PDF
                       </button>
                       {q.status === 'Aprovado' && (
                         <button
@@ -734,6 +747,8 @@ export function ClienteDetalhePage() {
           </div>
         </div>
       )}
+
+      <LoadingOverlay show={!!actionLoading} label={actionLoading} />
 
       <ConfirmModal
         open={confirmInvoiceQuote !== null}

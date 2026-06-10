@@ -5,8 +5,10 @@ import {
   getClients, getProducts, getQuotes, updatePrice,
 } from '../../api/client'
 import type { Client, Product, Quote, QuoteStatus } from '../../types'
-import { printQuote, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
+import { downloadQuotePDF, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
+import { withMinDuration } from '../../utils/loading'
 import { ConfirmModal } from '../../components/ConfirmModal'
+import { LoadingOverlay } from '../../components/LoadingOverlay'
 import { useSettings } from '../../contexts/SettingsContext'
 
 const STATUS_COLORS_DARK: Record<QuoteStatus, string> = {
@@ -103,9 +105,12 @@ export default function OrcamentosPage() {
 
   const [stockWarning, setStockWarning] = useState('')
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState('')
 
   const load = async () => {
-    const [qRes, cRes, pRes] = await Promise.allSettled([getQuotes(), getClients(), getProducts()])
+    const [qRes, cRes, pRes] = await withMinDuration(
+      Promise.allSettled([getQuotes(), getClients(), getProducts()])
+    )
     if (qRes.status === 'fulfilled') setQuotes(qRes.value)
     if (cRes.status === 'fulfilled') setClients(cRes.value)
     if (pRes.status === 'fulfilled') setProducts(pRes.value)
@@ -264,13 +269,23 @@ export default function OrcamentosPage() {
     if (!confirmDelete) return
     const id = confirmDelete
     setConfirmDelete(null)
+    setActionLoading('Excluindo orçamento…')
     try { await deleteQuote(id); await load() }
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro ao excluir orçamento') }
+    finally { setActionLoading('') }
   }
 
   const handleApprove = async (id: string) => {
+    setActionLoading('Aprovando orçamento…')
     try { await approveQuote(id); await load() }
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro') }
+    finally { setActionLoading('') }
+  }
+
+  const handleDownloadPDF = async (q: Quote) => {
+    setActionLoading('Gerando PDF…')
+    try { await downloadQuotePDF(q, clients) }
+    finally { setActionLoading('') }
   }
 
   const handleCancel = (id: string) => setConfirmAction({ type: 'cancel', id })
@@ -279,8 +294,10 @@ export default function OrcamentosPage() {
     const id = confirmAction?.id
     setConfirmAction(null)
     if (!id) return
+    setActionLoading('Cancelando orçamento…')
     try { await cancelQuote(id); await load() }
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro') }
+    finally { setActionLoading('') }
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -395,14 +412,14 @@ export default function OrcamentosPage() {
               {/* Ações de nota */}
               <div className="mt-3 pt-3 border-t border-[#1c1c1c] flex gap-2 flex-wrap">
                 <button
-                  onClick={() => printQuote(q, clients)}
+                  onClick={() => handleDownloadPDF(q)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[#28AEA4]/8 border border-[#28AEA4]/20 text-[#28AEA4] rounded-lg text-xs font-medium hover:bg-[#28AEA4]/15 transition-colors"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                     <rect x="6" y="14" width="12" height="8"/>
                   </svg>
-                  Imprimir / PDF
+                  Gerar PDF
                 </button>
                 <button
                   onClick={() => shareQuoteOnWhatsApp(q, clients, 'orcamento')}
@@ -428,6 +445,8 @@ export default function OrcamentosPage() {
           ))}
         </div>
       )}
+
+      <LoadingOverlay show={!!actionLoading} label={actionLoading} />
 
       <ConfirmModal
         open={confirmAction?.type === 'cancel'}

@@ -166,7 +166,7 @@ function buildBodyContent(quote: Quote, client?: Client, kind: 'orcamento' | 'pe
 
 // ── Gera PDF como Blob ────────────────────────────────────────────────────────
 
-async function generatePDFBlob(quote: Quote, client?: Client): Promise<Blob> {
+async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<Blob> {
   const container = document.createElement('div')
   // Mantém no viewport (sem scroll) mas invisível — evita o flash de tela
   container.style.cssText = 'position:fixed;left:0;top:0;width:794px;background:#fff;opacity:0;pointer-events:none;z-index:9999;'
@@ -176,7 +176,7 @@ async function generatePDFBlob(quote: Quote, client?: Client): Promise<Blob> {
   container.appendChild(styleEl)
 
   const bodyDiv = document.createElement('div')
-  bodyDiv.innerHTML = buildBodyContent(quote, client)
+  bodyDiv.innerHTML = buildBodyContent(quote, client, kind)
   container.appendChild(bodyDiv)
 
   document.body.appendChild(container)
@@ -225,35 +225,27 @@ async function generatePDFBlob(quote: Quote, client?: Client): Promise<Blob> {
   }
 }
 
-// ── HTML para janela de impressão ─────────────────────────────────────────────
-
-function buildPrintHTML(quote: Quote, client?: Client, kind: 'orcamento' | 'pedido' = 'orcamento'): string {
-  const prefix = kind === 'pedido' ? 'PED' : 'ORC'
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>${prefix}-${pad(quote.id)} — RinoSeller</title>
-  <style>${DOC_CSS}
-    @media print { body { padding:0; } @page { margin:10mm; size:A4; } }
-  </style>
-</head>
-<body>
-  ${buildBodyContent(quote, client, kind)}
-</body>
-</html>`
-}
-
 // ── API pública ───────────────────────────────────────────────────────────────
 
-export function printQuote(quote: Quote, clients: Client[], kind: 'orcamento' | 'pedido' = 'orcamento'): void {
-  const client = findClient(quote, clients)
-  const html   = buildPrintHTML(quote, client, kind)
-  const win    = window.open('', '_blank', 'width=900,height=700')
-  if (!win) { alert('Permita popups para imprimir o orçamento.'); return }
-  win.document.write(html)
-  win.document.close()
-  win.addEventListener('load', () => setTimeout(() => win.print(), 400))
+export async function downloadQuotePDF(quote: Quote, clients: Client[], kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<void> {
+  const client   = findClient(quote, clients)
+  const prefix   = kind === 'pedido' ? 'PED' : 'ORC'
+  const fileName = `${prefix}-${pad(quote.id)}.pdf`
+
+  let pdfBlob: Blob
+  try {
+    pdfBlob = await generatePDFBlob(quote, client, kind)
+  } catch {
+    alert('Não foi possível gerar o PDF.')
+    return
+  }
+
+  const blobUrl = URL.createObjectURL(pdfBlob)
+  const link    = document.createElement('a')
+  link.href     = blobUrl
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(blobUrl)
 }
 
 export async function shareQuoteOnWhatsApp(quote: Quote, clients: Client[], kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<void> {
@@ -281,9 +273,9 @@ export async function shareQuoteOnWhatsApp(quote: Quote, clients: Client[], kind
 
   let pdfBlob: Blob
   try {
-    pdfBlob = await generatePDFBlob(quote, client)
+    pdfBlob = await generatePDFBlob(quote, client, kind)
   } catch {
-    alert('Não foi possível gerar o PDF. Tente usar o botão Imprimir / PDF.')
+    alert('Não foi possível gerar o PDF. Tente usar o botão Gerar PDF.')
     return
   }
 
