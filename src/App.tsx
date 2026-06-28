@@ -21,6 +21,7 @@ import OrcamentosPage from './pages/dashboard/OrcamentosPage'
 import PedidosVendaPage from './pages/dashboard/PedidosVendaPage'
 import UsuariosPage from './pages/dashboard/UsuariosPage'
 import PerfilPage from './pages/dashboard/PerfilPage'
+import { CobrancaPage } from './pages/dashboard/CobrancaPage'
 
 export default function App() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="financeiro" element={<FinanceiroPage />} />
             <Route path="catalogos" element={<CatalogosPage />} />
             <Route path="perfil" element={<PerfilPage />} />
+            <Route path="cobranca" element={<CobrancaPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

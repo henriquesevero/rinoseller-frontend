@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { UserAvatar } from '../components/UserAvatar'
+import { hasAccess, trialDaysLeft } from '../utils/subscription'
 
 /* ── Icons ──────────────────────────────────────────────────────────── */
 const IconGrid = () => (
@@ -157,14 +158,25 @@ function NavItemLink({ item, onClose }: { item: NavItem; onClose: () => void }) 
 /* ── Layout ────────────────────────────────────────────────────────── */
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { logout, user } = useAuth()
+  const { logout, user, refreshUser } = useAuth()
   const { hideValues, toggleHideValues, theme, toggleTheme } = useSettings()
   const navigate = useNavigate()
   const location = useLocation()
   const isOverview = location.pathname === '/dashboard'
+  const isCobranca = location.pathname === '/dashboard/cobranca'
+
+  useEffect(() => {
+    refreshUser().then(fresh => {
+      if (fresh && !hasAccess(fresh) && location.pathname !== '/dashboard/cobranca') {
+        navigate('/dashboard/cobranca', { replace: true })
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   const handleLogout = () => { logout(); navigate('/login', { replace: true }) }
   const closeSidebar = () => setSidebarOpen(false)
+  const blocked = !isCobranca && !hasAccess(user)
 
   return (
     <div className="flex h-screen bg-[#f5f5f7] dark:bg-[#080808] overflow-hidden text-[#1d1d1f] dark:text-white">
@@ -241,6 +253,14 @@ export function DashboardLayout() {
                 </p>
               </div>
             </div>
+            {user?.plan === 'trial' && !user.subscription_active && (
+              <button
+                onClick={() => navigate('/dashboard/cobranca')}
+                className="mt-2 w-full text-center text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg py-1.5 hover:bg-amber-500/20 transition-colors"
+              >
+                Teste — {trialDaysLeft(user)} {trialDaysLeft(user) === 1 ? 'dia restante' : 'dias restantes'}
+              </button>
+            )}
           </div>
 
           {/* Controls */}
@@ -321,7 +341,7 @@ export function DashboardLayout() {
         </div>
 
         <main className="flex-1 overflow-y-auto bg-[#f5f5f7] dark:bg-[#1a1a1c]">
-          <Outlet />
+          {blocked ? null : <Outlet />}
         </main>
       </div>
     </div>

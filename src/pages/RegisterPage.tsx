@@ -3,6 +3,8 @@ import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { PasswordInput } from '../components/PasswordInput'
 import { AuthErrorBanner } from '../components/AuthErrorBanner'
+import { PlanPicker, type PlanId } from '../components/PlanPicker'
+import { FakeCardForm } from '../components/FakeCardForm'
 
 const STEPS = [
   {
@@ -22,6 +24,13 @@ const STEPS = [
   },
 ]
 
+type Step = 'form' | 'plan' | 'card' | 'success'
+
+const PLAN_LABELS: Record<'base' | 'professional', { label: string; price: string }> = {
+  base:         { label: 'Plano Base',         price: 'R$ 29/mês' },
+  professional: { label: 'Plano Profissional', price: 'R$ 99/mês' },
+}
+
 export function RegisterPage() {
   const { isAuthenticated } = useAuth()
   const [name,      setName]      = useState('')
@@ -31,28 +40,35 @@ export function RegisterPage() {
   const [error,     setError]     = useState('')
   const [errorCode, setErrorCode] = useState<string | undefined>(undefined)
   const [loading,   setLoading]   = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [step,      setStep]      = useState<Step>('form')
+  const [plan,      setPlan]      = useState<PlanId | null>(null)
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleFormSubmit = (e: FormEvent) => {
     e.preventDefault()
     setError('')
     setErrorCode(undefined)
     if (password !== confirm) { setError('As senhas não coincidem.'); return }
     if (password.length < 6)  { setError('A senha deve ter ao menos 6 caracteres.'); return }
+    setStep('plan')
+  }
 
+  const handlePlanContinue = async () => {
+    if (!plan) return
+    setError('')
+    setErrorCode(undefined)
     setLoading(true)
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, plan }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro ao criar conta.'); setErrorCode(data.code); setLoading(false); return }
 
-      setSubmitted(true)
+      setStep(plan === 'trial' ? 'success' : 'card')
     } catch {
       setError('Sem conexão com o servidor.')
     } finally {
@@ -120,27 +136,23 @@ export function RegisterPage() {
           </Link>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-extrabold text-white mb-1">Criar conta</h1>
-            <p className="text-sm text-gray-500">Preencha os dados abaixo para começar.</p>
+            <h1 className="text-2xl font-extrabold text-white mb-1">
+              {step === 'form' && 'Criar conta'}
+              {step === 'plan' && 'Escolha como começar'}
+              {step === 'card' && 'Dados de pagamento'}
+              {step === 'success' && 'Tudo certo!'}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {step === 'form' && 'Preencha os dados abaixo para começar.'}
+              {step === 'plan' && 'Teste grátis por 3 dias ou assine um plano agora.'}
+              {step === 'card' && 'Simulação de cobrança — nenhum dado real é necessário aqui.'}
+              {step === 'success' && 'Falta só confirmar seu e-mail.'}
+            </p>
           </div>
 
-          {submitted ? (
-            <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#28AEA4]/10 border border-[#28AEA4]/30 flex items-center justify-center mx-auto mb-5">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#28AEA4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="4" width="20" height="16" rx="2" />
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-bold text-white mb-2">Confira seu e-mail</h2>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Enviamos um link de confirmação para <span className="text-gray-300">{email}</span>.
-                Clique nele para ativar sua conta e poder entrar.
-              </p>
-            </div>
-          ) : (
+          {step === 'form' && (
             <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8">
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
                     Seu nome
@@ -194,12 +206,63 @@ export function RegisterPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !name || !email || !password || !confirm}
+                  disabled={!name || !email || !password || !confirm}
                   className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
                 >
-                  {loading ? 'Criando conta...' : 'Criar conta'}
+                  Continuar
                 </button>
               </form>
+            </div>
+          )}
+
+          {step === 'plan' && (
+            <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8">
+              <PlanPicker value={plan} onChange={setPlan} />
+
+              {error && <div className="mt-4"><AuthErrorBanner code={errorCode} message={error} email={email.trim()} /></div>}
+
+              <button
+                type="button"
+                onClick={handlePlanContinue}
+                disabled={!plan || loading}
+                className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-6"
+              >
+                {loading ? 'Criando conta...' : 'Continuar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep('form')}
+                disabled={loading}
+                className="w-full text-center text-gray-600 hover:text-gray-400 text-xs transition-colors pt-3"
+              >
+                ← Voltar
+              </button>
+            </div>
+          )}
+
+          {step === 'card' && plan && plan !== 'trial' && (
+            <FakeCardForm
+              email={email}
+              plan={plan}
+              planLabel={PLAN_LABELS[plan].label}
+              planPrice={PLAN_LABELS[plan].price}
+              onSuccess={() => setStep('success')}
+            />
+          )}
+
+          {step === 'success' && (
+            <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#28AEA4]/10 border border-[#28AEA4]/30 flex items-center justify-center mx-auto mb-5">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#28AEA4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-bold text-white mb-2">Confira seu e-mail</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Enviamos um link de confirmação para <span className="text-gray-300">{email}</span>.
+                Clique nele para ativar sua conta e poder entrar.
+              </p>
             </div>
           )}
 

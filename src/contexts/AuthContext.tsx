@@ -6,6 +6,9 @@ export interface AuthUser {
   email: string
   role: 'admin' | 'seller'
   active: boolean
+  plan?: string
+  trial_ends_at?: string | null
+  subscription_active?: boolean
 }
 
 interface AuthCtx {
@@ -14,6 +17,7 @@ interface AuthCtx {
   isAuthenticated: boolean
   login(email: string, password: string): Promise<{ ok: boolean; error?: string; code?: string }>
   logout(): void
+  refreshUser(): Promise<AuthUser | null>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -62,8 +66,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const refreshUser = async (): Promise<AuthUser | null> => {
+    const currentToken = localStorage.getItem(TOKEN_KEY)
+    if (!currentToken) return null
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${currentToken}` },
+      })
+      if (!res.ok) return null
+      const fresh = (await res.json()) as AuthUser
+      localStorage.setItem(USER_KEY, JSON.stringify(fresh))
+      setUser(fresh)
+      return fresh
+    } catch {
+      return null
+    }
+  }
+
   return (
-    <Ctx.Provider value={{ user, token, isAuthenticated: !!token, login, logout }}>
+    <Ctx.Provider value={{ user, token, isAuthenticated: !!token, login, logout, refreshUser }}>
       {children}
     </Ctx.Provider>
   )

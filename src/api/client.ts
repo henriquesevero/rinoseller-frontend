@@ -19,6 +19,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       localStorage.removeItem('korav_user')
       window.location.href = '/login'
     }
+    if (res.status === 402 && window.location.pathname !== '/dashboard/cobranca') {
+      window.location.href = '/dashboard/cobranca'
+    }
     const err = await res.json().catch(() => ({ error: 'Erro desconhecido' }))
     throw new Error(err.error ?? `HTTP ${res.status}`)
   }
@@ -193,3 +196,18 @@ export const addBrandCatalog = (c: { brand_name: string; drive_url: string }) =>
 
 export const deleteBrandCatalog = (id: string) =>
   request<{ message: string }>(`/brand-catalogs/${id}`, { method: 'DELETE' })
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+
+export interface CheckoutCardData {
+  email: string
+  plan: 'base' | 'professional'
+  holder_name: string
+  number: string
+  expiry_month: string
+  expiry_year: string
+  cvv: string
+}
+
+export const checkoutSubscription = (data: CheckoutCardData) =>
+  request<{ message: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify(data) })
