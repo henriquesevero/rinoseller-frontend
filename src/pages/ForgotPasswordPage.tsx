@@ -1,8 +1,22 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PasswordInput } from '../components/PasswordInput'
+import { AuthLayout } from '../components/AuthLayout'
 
 type Step = 'email' | 'code' | 'password' | 'done'
+
+const STEPS = [
+  { n: '1', title: 'Informe seu e-mail', desc: 'Vamos enviar um código de verificação para o e-mail cadastrado na sua conta.' },
+  { n: '2', title: 'Confirme o código', desc: 'Cole ou digite o código de 6 dígitos recebido no seu e-mail.' },
+  { n: '3', title: 'Crie uma nova senha', desc: 'Defina uma nova senha e volte a acessar sua conta normalmente.' },
+]
+
+const TITLES: Record<Step, { title: string; subtitle: string }> = {
+  email:    { title: 'Recuperar senha',     subtitle: 'Informe o e-mail cadastrado na sua conta.' },
+  code:     { title: 'Verifique seu e-mail', subtitle: 'Digite o código de 6 dígitos que enviamos.' },
+  password: { title: 'Nova senha',          subtitle: 'Escolha uma nova senha para sua conta.' },
+  done:     { title: 'Tudo certo!',         subtitle: 'Sua senha foi redefinida com sucesso.' },
+}
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate()
@@ -63,190 +77,179 @@ export function ForgotPasswordPage() {
     }
   }
 
-  const stepLabel = {
-    email: 'Recuperar Senha',
-    code: 'Verifique seu E-mail',
-    password: 'Nova Senha',
-    done: 'Tudo certo!',
-  }[step]
+  const { title, subtitle } = TITLES[step]
 
   return (
-    <div className="min-h-screen bg-[#080808] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,_rgba(212,175,55,0.07)_0%,_transparent_70%)]" />
-
-      <div className="relative w-full max-w-sm">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border border-[#28AEA4]/60 mb-5 relative">
-            <div className="absolute inset-0 rounded-full bg-[#28AEA4]/5" />
-            <span className="text-[#28AEA4] text-3xl font-bold tracking-tight">K</span>
-          </div>
-          <h1 className="text-4xl font-bold text-white tracking-[0.2em]">RinoSeller</h1>
-          <div className="flex items-center gap-3 justify-center mt-2">
-            <div className="h-px w-10 bg-[#28AEA4]/40" />
-            <p className="text-[#28AEA4] text-xs tracking-[0.3em] uppercase">{stepLabel}</p>
-            <div className="h-px w-10 bg-[#28AEA4]/40" />
-          </div>
-        </div>
-
-        <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8 shadow-[0_0_80px_rgba(0,0,0,0.8)]">
-
-          {step === 'email' && (
-            <form onSubmit={handleSendCode} className="space-y-5">
-              <p className="text-gray-500 text-sm text-center leading-relaxed">
-                Informe seu e-mail e vamos enviar um código para você redefinir sua senha.
-              </p>
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  E-mail cadastrado
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  autoComplete="email"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
-                />
+    <AuthLayout
+      title={title}
+      subtitle={subtitle}
+      leftContent={
+        <>
+          <p className="text-xs font-bold text-white/60 uppercase tracking-[0.2em] mb-4">Recuperação de senha</p>
+          <h2 className="text-2xl font-extrabold text-white leading-snug mb-10">
+            Recupere o acesso<br />à sua conta em poucos passos.
+          </h2>
+          <div className="space-y-8">
+            {STEPS.map((s, i) => (
+              <div key={s.n} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-white/20 border border-white/40 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-extrabold text-white">{s.n}</span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div className="w-px flex-1 mt-2 bg-gradient-to-b from-white/30 to-transparent min-h-[28px]" />
+                  )}
+                </div>
+                <div className="pb-2">
+                  <p className="text-sm font-semibold text-white mb-1">{s.title}</p>
+                  <p className="text-xs text-white/60 leading-relaxed">{s.desc}</p>
+                </div>
               </div>
+            ))}
+          </div>
+        </>
+      }
+      footer={
+        step !== 'done' && (
+          <Link to="/login" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">
+            ← Voltar para o login
+          </Link>
+        )
+      }
+    >
+      {step === 'email' && (
+        <form onSubmit={handleSendCode} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+              E-mail cadastrado
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              autoComplete="email"
+              className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
+            />
+          </div>
 
-              {error && (
-                <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !email}
-                className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase"
-              >
-                {loading ? 'Enviando...' : 'Redefinir senha'}
-              </button>
-            </form>
-          )}
-
-          {step === 'code' && (
-            <div className="space-y-5">
-              <div className="text-center space-y-1">
-                <div className="w-14 h-14 rounded-full bg-[#28AEA4]/10 border border-[#28AEA4]/30 flex items-center justify-center mx-auto mb-3">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#28AEA4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
-                </div>
-                <p className="text-white font-semibold">Enviamos um código</p>
-                <p className="text-gray-500 text-sm">Cole ou digite abaixo o código de 6 dígitos enviado para {email}.</p>
-              </div>
-
-              <input
-                type="text"
-                value={code}
-                onChange={e => handleCodeChange(e.target.value)}
-                placeholder="000000"
-                maxLength={6}
-                autoFocus
-                className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700 tracking-[0.3em] text-center font-mono"
-              />
-
-              {error && (
-                <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setStep('password')}
-                disabled={code.length !== 6}
-                className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase"
-              >
-                Continuar
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setStep('email'); setCode(''); setError('') }}
-                className="block w-full text-center text-gray-600 hover:text-gray-400 text-xs transition-colors"
-              >
-                ← Usar outro e-mail
-              </button>
+          {error && (
+            <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
+              <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
 
-          {step === 'password' && (
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  Nova senha
-                </label>
-                <PasswordInput
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="mínimo 6 caracteres"
-                  autoComplete="new-password"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  Confirmar nova senha
-                </label>
-                <PasswordInput
-                  value={confirm}
-                  onChange={setConfirm}
-                  placeholder="repita a senha"
-                  autoComplete="new-password"
-                />
-              </div>
+          <button
+            type="submit"
+            disabled={loading || !email}
+            className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
+          >
+            {loading ? 'Enviando...' : 'Enviar código'}
+          </button>
+        </form>
+      )}
 
-              {error && (
-                <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
+      {step === 'code' && (
+        <div className="space-y-4">
+          <p className="text-gray-500 text-sm text-center leading-relaxed">
+            Cole ou digite o código de 6 dígitos enviado para <span className="text-gray-300">{email}</span>.
+          </p>
 
-              <button
-                type="submit"
-                disabled={loading || !password || !confirm}
-                className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase"
-              >
-                {loading ? 'Salvando...' : 'Salvar nova senha'}
-              </button>
+          <input
+            type="text"
+            value={code}
+            onChange={e => handleCodeChange(e.target.value)}
+            placeholder="000000"
+            maxLength={6}
+            autoFocus
+            className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700 tracking-[0.3em] text-center font-mono"
+          />
 
-              <button
-                type="button"
-                onClick={() => { setStep('code'); setError('') }}
-                className="block w-full text-center text-gray-600 hover:text-gray-400 text-xs transition-colors"
-              >
-                ← Voltar
-              </button>
-            </form>
-          )}
-
-          {step === 'done' && (
-            <div className="text-center space-y-4">
-              <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6edbd5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <p className="text-white font-semibold">Senha redefinida!</p>
-              <p className="text-gray-500 text-sm">Redirecionando para o login...</p>
+          {error && (
+            <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
+              <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => setStep('password')}
+            disabled={code.length !== 6}
+            className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
+          >
+            Continuar
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setStep('email'); setCode(''); setError('') }}
+            className="block w-full text-center text-gray-600 hover:text-gray-400 text-xs transition-colors"
+          >
+            ← Usar outro e-mail
+          </button>
         </div>
+      )}
 
-        {step !== 'done' && (
-          <div className="mt-5 text-center">
-            <Link to="/login" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">
-              ← Voltar para o login
-            </Link>
+      {step === 'password' && (
+        <form onSubmit={handleResetPassword} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+              Nova senha
+            </label>
+            <PasswordInput
+              value={password}
+              onChange={setPassword}
+              placeholder="mínimo 6 caracteres"
+              autoComplete="new-password"
+            />
           </div>
-        )}
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+              Confirmar nova senha
+            </label>
+            <PasswordInput
+              value={confirm}
+              onChange={setConfirm}
+              placeholder="repita a senha"
+              autoComplete="new-password"
+            />
+          </div>
 
-        <p className="text-center text-gray-700 text-xs mt-6 tracking-wider">
-          RinoSeller © {new Date().getFullYear()}
-        </p>
-      </div>
-    </div>
+          {error && (
+            <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !password || !confirm}
+            className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
+          >
+            {loading ? 'Salvando...' : 'Salvar nova senha'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setStep('code'); setError('') }}
+            className="block w-full text-center text-gray-600 hover:text-gray-400 text-xs transition-colors"
+          >
+            ← Voltar
+          </button>
+        </form>
+      )}
+
+      {step === 'done' && (
+        <div className="text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6edbd5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <p className="text-white font-semibold">Senha redefinida!</p>
+          <p className="text-gray-500 text-sm">Redirecionando para o login...</p>
+        </div>
+      )}
+    </AuthLayout>
   )
 }
