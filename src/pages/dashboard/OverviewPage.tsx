@@ -373,6 +373,8 @@ export function OverviewPage() {
   const [hoveredPoint, setHoveredPoint]      = useState<ChartPoint | null>(null)
   const [openRanking, setOpenRanking]        = useState<{ title: string; rows: ClientRankRow[] } | null>(null)
   const [clientTab, setClientTab]            = useState<'compradores' | 'dividas' | 'pedidos'>('compradores')
+  const [productTab, setProductTab]          = useState<'mais' | 'menos'>('mais')
+  const [brandTab, setBrandTab]              = useState<'mais' | 'menos'>('mais')
 
   useEffect(() => {
     Promise.all([getQuotes(), getClients(), getProducts(), getAllPayments()])
@@ -390,12 +392,6 @@ export function OverviewPage() {
   const revenuePayments = clientPayments.filter(p => p.count_as_revenue === true)
   const faturadoPeriod = periodTotal(quotes, revenuePayments, period)
   const chartPoints    = chartData(quotes, revenuePayments, period)
-  const pending        = quotes.filter(q => q.status === 'Aguardando Aprovação')
-  const approved       = quotes.filter(q => q.status === 'Aprovado')
-  const pedidosVenda   = quotes.filter(q =>
-    q.status === 'Aprovado' || q.status === 'Entregue' || q.status === 'Faturado' || q.status === 'Entregue/Faturado'
-  )
-  const emAberto       = approved.reduce((s, q) => s + q.total, 0)
   const lowStock       = products.filter(p => !p.is_kit && p.stock_quantity <= 3)
 
   // ── Dashboard de clientes ──────────────────────────────────────────────────
@@ -418,6 +414,33 @@ export function OverviewPage() {
   const bottomBuyers = allLeast.slice(0, 5)
   const topDebtors   = allDebtors.slice(0, 5)
   const topOrderers  = allOrderers.slice(0, 5)
+
+  // ── Ranking de produtos e marcas ────────────────────────────────────────────
+  const soldQuotes = quotes.filter(q =>
+    q.status === 'Aprovado' || q.status === 'Entregue' || q.status === 'Faturado' || q.status === 'Entregue/Faturado'
+  )
+  const productSales = new Map<string, { name: string; qty: number }>()
+  soldQuotes.forEach(q => {
+    q.items.forEach(item => {
+      const cur = productSales.get(item.product_id) ?? { name: item.product_name, qty: 0 }
+      cur.qty += item.quantity
+      productSales.set(item.product_id, cur)
+    })
+  })
+
+  const productRank    = [...productSales.entries()].map(([id, v]) => ({ id, name: v.name, qty: v.qty }))
+  const topProducts    = [...productRank].sort((a, b) => b.qty - a.qty).slice(0, 5)
+  const bottomProducts = [...productRank].filter(p => p.qty > 0).sort((a, b) => a.qty - b.qty).slice(0, 5)
+
+  const brandSales = new Map<string, number>()
+  productSales.forEach((v, productId) => {
+    const brand = products.find(p => p.id === productId)?.brand?.trim()
+    if (!brand) return
+    brandSales.set(brand, (brandSales.get(brand) ?? 0) + v.qty)
+  })
+  const brandRank    = [...brandSales.entries()].map(([name, qty]) => ({ name, qty }))
+  const topBrands     = [...brandRank].sort((a, b) => b.qty - a.qty).slice(0, 5)
+  const bottomBrands  = [...brandRank].filter(b => b.qty > 0).sort((a, b) => a.qty - b.qty).slice(0, 5)
 
   return (
     <div className="min-h-full">
@@ -494,32 +517,6 @@ export function OverviewPage() {
                 ) : (
                   <WaveChart data={chartPoints} light={isLight} onHover={setHoveredPoint} />
                 )}
-              </div>
-            </div>
-
-            {/* ── Linha 2: Métricas ── */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Em Aberto</p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-400 tabular-nums truncate">{hv(formatBRL(emAberto))}</p>
-                <p className="text-xs text-gray-600 mt-1">{approved.length} aprovado(s)</p>
-              </div>
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Aguardando</p>
-                <p className="text-lg sm:text-2xl font-bold text-yellow-400 tabular-nums truncate">{hv(String(pending.length))}</p>
-                <p className="text-xs text-gray-600 mt-1">orçamento(s)</p>
-              </div>
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Clientes</p>
-                <p className="text-lg sm:text-2xl font-bold text-white tabular-nums truncate">{hv(String(clients.length))}</p>
-                <p className="text-xs text-gray-600 mt-1">cadastrados</p>
-              </div>
-              <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Pedidos de Venda</p>
-                <p className="text-lg sm:text-2xl font-bold text-white tabular-nums truncate">{hv(String(pedidosVenda.length))}</p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {quotes.filter(q => q.status === 'Faturado' || q.status === 'Entregue/Faturado').length} faturado(s)
-                </p>
               </div>
             </div>
 
@@ -644,6 +641,92 @@ export function OverviewPage() {
                     <Link to="/dashboard/produtos" className="block w-full text-xs text-gray-600 hover:text-[#28AEA4] transition-colors text-center">
                       Ajustar estoque →
                     </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Ranking de produtos + marcas ── */}
+            <div className="flex flex-wrap gap-4 items-start">
+
+              {/* Ranking de produtos */}
+              <div className="flex-1 min-w-[260px] max-w-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-white">Ranking de Produtos</h2>
+                  <Link to="/dashboard/produtos" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Ver todos →</Link>
+                </div>
+                <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+                  <div className="flex border-b border-[#1e1e1e]">
+                    {([
+                      { key: 'mais' as const, label: 'Mais vendidos', color: 'text-[#28AEA4]' },
+                      { key: 'menos' as const, label: 'Menos vendidos', color: 'text-amber-400' },
+                    ]).map(t => (
+                      <button key={t.key} onClick={() => setProductTab(t.key)}
+                        className={`flex-1 py-3 text-xs font-medium transition-colors border-b-2 ${
+                          productTab === t.key
+                            ? `${t.color} border-current`
+                            : 'text-gray-600 border-transparent hover:text-gray-400'
+                        }`}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="px-4 py-2 space-y-1">
+                    {(productTab === 'mais' ? topProducts : bottomProducts).length === 0 ? (
+                      <p className="text-gray-700 text-xs text-center py-4">Sem dados suficientes</p>
+                    ) : (productTab === 'mais' ? topProducts : bottomProducts).map((p, i) => (
+                      <div key={p.id} className="flex items-center gap-2.5 py-2">
+                        <span className="text-[11px] text-gray-600 w-5 shrink-0 tabular-nums">{i + 1}º</span>
+                        <div className="min-w-0">
+                          <p className="text-sm text-gray-200 truncate leading-snug">{p.name}</p>
+                          <p className={`text-xs font-semibold tabular-nums mt-0.5 ${productTab === 'mais' ? 'text-[#28AEA4]' : 'text-amber-400'}`}>
+                            {p.qty} un. vendida{p.qty !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Ranking de marcas */}
+              <div className="flex-1 min-w-[260px] max-w-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-white">Ranking de Marcas</h2>
+                  <Link to="/dashboard/produtos" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Ver todos →</Link>
+                </div>
+                <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+                  <div className="flex border-b border-[#1e1e1e]">
+                    {([
+                      { key: 'mais' as const, label: 'Mais vendidas', color: 'text-[#28AEA4]' },
+                      { key: 'menos' as const, label: 'Menos vendidas', color: 'text-amber-400' },
+                    ]).map(t => (
+                      <button key={t.key} onClick={() => setBrandTab(t.key)}
+                        className={`flex-1 py-3 text-xs font-medium transition-colors border-b-2 ${
+                          brandTab === t.key
+                            ? `${t.color} border-current`
+                            : 'text-gray-600 border-transparent hover:text-gray-400'
+                        }`}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="px-4 py-2 space-y-1">
+                    {(brandTab === 'mais' ? topBrands : bottomBrands).length === 0 ? (
+                      <p className="text-gray-700 text-xs text-center py-4">Sem dados suficientes</p>
+                    ) : (brandTab === 'mais' ? topBrands : bottomBrands).map((b, i) => (
+                      <div key={b.name} className="flex items-center gap-2.5 py-2">
+                        <span className="text-[11px] text-gray-600 w-5 shrink-0 tabular-nums">{i + 1}º</span>
+                        <div className="min-w-0">
+                          <p className="text-sm text-gray-200 truncate leading-snug">{b.name}</p>
+                          <p className={`text-xs font-semibold tabular-nums mt-0.5 ${brandTab === 'mais' ? 'text-[#28AEA4]' : 'text-amber-400'}`}>
+                            {b.qty} un. vendida{b.qty !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

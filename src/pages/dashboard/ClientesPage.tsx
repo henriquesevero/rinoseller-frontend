@@ -68,6 +68,7 @@ export function ClientesPage() {
 
   const countEmDia    = clients.filter(c => c.debt <= 0).length
   const countDevedores = clients.filter(c => c.debt > 0).length
+  const totalDevendo   = clients.reduce((s, c) => s + (c.debt > 0 ? c.debt : 0), 0)
 
   const handleCreate = async () => {
     if (!form.name.trim() || creating) return
@@ -112,6 +113,25 @@ export function ClientesPage() {
 
 
       <div className="px-6 py-5 space-y-4">
+        {/* Stat blocks */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Cadastrados</p>
+            <p className="text-lg sm:text-2xl font-bold text-white tabular-nums">{clients.length}</p>
+            <p className="text-xs text-gray-600 mt-1">clientes no total</p>
+          </div>
+          <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Em dia</p>
+            <p className="text-lg sm:text-2xl font-bold text-emerald-500 tabular-nums">{countEmDia}</p>
+            <p className="text-xs text-gray-600 mt-1">sem dívida pendente</p>
+          </div>
+          <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Devendo</p>
+            <p className="text-lg sm:text-2xl font-bold text-red-400 tabular-nums">{countDevedores}</p>
+            <p className="text-xs text-gray-600 mt-1 truncate">{formatBRL(totalDevendo)} em aberto</p>
+          </div>
+        </div>
+
         {/* Search */}
         <input
           type="search"

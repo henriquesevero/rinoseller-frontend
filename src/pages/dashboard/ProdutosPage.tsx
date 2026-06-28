@@ -301,6 +301,9 @@ export function ProdutosPage() {
     await load()
   }
 
+  const countLowStock = products.filter(p => !p.is_kit && p.stock_quantity > 0 && p.stock_quantity <= 3).length
+  const countZerado   = products.filter(p => !p.is_kit && p.stock_quantity === 0).length
+
   const filtered = products
     .filter(p => filterCat === 'Todos' || p.category === filterCat)
     .filter(p => filterBrand === 'Todas' || p.brand === filterBrand)
@@ -356,6 +359,25 @@ export function ProdutosPage() {
           >
             + Novo Produto
           </button>
+        </div>
+      </div>
+
+      {/* Stat blocks */}
+      <div className="px-6 pt-5 grid grid-cols-3 gap-3">
+        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Cadastrados</p>
+          <p className="text-lg sm:text-2xl font-bold text-white tabular-nums">{products.length}</p>
+          <p className="text-xs text-gray-600 mt-1">produtos no total</p>
+        </div>
+        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Estoque baixo</p>
+          <p className="text-lg sm:text-2xl font-bold text-amber-400 tabular-nums">{countLowStock}</p>
+          <p className="text-xs text-gray-600 mt-1">com 1 a 3 unidades</p>
+        </div>
+        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Zerados</p>
+          <p className="text-lg sm:text-2xl font-bold text-red-400 tabular-nums">{countZerado}</p>
+          <p className="text-xs text-gray-600 mt-1">sem estoque</p>
         </div>
       </div>
 
