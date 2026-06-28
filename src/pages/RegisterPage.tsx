@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, Link } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { PasswordInput } from '../components/PasswordInput'
 
 const STEPS = [
   {
@@ -22,13 +23,13 @@ const STEPS = [
 
 export function RegisterPage() {
   const { isAuthenticated } = useAuth()
-  const navigate = useNavigate()
-  const [name,     setName]     = useState('')
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm,  setConfirm]  = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [name,      setName]      = useState('')
+  const [email,     setEmail]     = useState('')
+  const [password,  setPassword]  = useState('')
+  const [confirm,   setConfirm]   = useState('')
+  const [error,     setError]     = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
 
@@ -48,12 +49,10 @@ export function RegisterPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro ao criar conta.'); setLoading(false); return }
 
-      localStorage.setItem('korav_token', data.token)
-      localStorage.setItem('korav_user', JSON.stringify(data.user))
-      navigate('/dashboard', { replace: true })
-      window.location.reload()
+      setSubmitted(true)
     } catch {
       setError('Sem conexão com o servidor.')
+    } finally {
       setLoading(false)
     }
   }
@@ -122,76 +121,88 @@ export function RegisterPage() {
             <p className="text-sm text-gray-500">Preencha os dados abaixo para começar.</p>
           </div>
 
-          <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  Seu nome
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Nome completo"
-                  autoComplete="name"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
-                />
+          {submitted ? (
+            <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#28AEA4]/10 border border-[#28AEA4]/30 flex items-center justify-center mx-auto mb-5">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#28AEA4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
               </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  autoComplete="email"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  Senha
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="mínimo 6 caracteres"
-                  autoComplete="new-password"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
-                  Confirmar senha
-                </label>
-                <input
-                  type="password"
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  placeholder="repita a senha"
-                  autoComplete="new-password"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
-                  <p className="text-red-400 text-sm">{error}</p>
+              <h2 className="text-lg font-bold text-white mb-2">Confira seu e-mail</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Enviamos um link de confirmação para <span className="text-gray-300">{email}</span>.
+                Clique nele para ativar sua conta e poder entrar.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-[#0f0f0f] border border-[#222222] rounded-2xl p-8">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+                    Seu nome
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Nome completo"
+                    autoComplete="name"
+                    className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+                    E-mail
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    autoComplete="email"
+                    className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+                    Senha
+                  </label>
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="mínimo 6 caracteres"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+                    Confirmar senha
+                  </label>
+                  <PasswordInput
+                    value={confirm}
+                    onChange={setConfirm}
+                    placeholder="repita a senha"
+                    autoComplete="new-password"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading || !name || !email || !password || !confirm}
-                className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
-              >
-                {loading ? 'Criando conta...' : 'Criar conta'}
-              </button>
-            </form>
-          </div>
+                {error && (
+                  <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !name || !email || !password || !confirm}
+                  className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
+                >
+                  {loading ? 'Criando conta...' : 'Criar conta'}
+                </button>
+              </form>
+            </div>
+          )}
 
           <div className="mt-5 text-center">
             <Link to="/login" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">

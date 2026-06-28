@@ -9,6 +9,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { DashboardLayout } from './pages/DashboardLayout'
 import { OverviewPage } from './pages/dashboard/OverviewPage'
 import { ProdutosPage } from './pages/dashboard/ProdutosPage'
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
           <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+          <Route path="/verificar-email" element={<VerifyEmailPage />} />
 
           <Route
             path="/dashboard"
