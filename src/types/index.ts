@@ -9,6 +9,7 @@ export interface Product {
   code?: string
   name: string
   category: string
+  brand?: string
   price: number
   cost_price: number
   stock_quantity: number

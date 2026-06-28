@@ -65,7 +65,7 @@ function openPrint(title: string, body: string) {
   setTimeout(() => w.print(), 400)
 }
 
-export function exportProductsPDF(products: Product[]) {
+export function exportProductsPDF(products: Product[], scopeLabel: string = 'Total') {
   const sorted = [...products].sort((a, b) => {
     const ca = parseInt(a.code ?? '0', 10) || 0
     const cb = parseInt(b.code ?? '0', 10) || 0
@@ -85,6 +85,7 @@ export function exportProductsPDF(products: Product[]) {
         <td class="code">${p.code ?? ''}</td>
         <td>${p.name}</td>
         <td class="muted">${p.category}</td>
+        <td class="muted">${p.brand ?? ''}</td>
         <td class="r num">${formatBRL(p.price)}</td>
         <td class="r num muted">${formatBRL(p.cost_price)}</td>
         <td class="c num ${stockClass}">${stockCell}</td>
@@ -96,7 +97,7 @@ export function exportProductsPDF(products: Product[]) {
     <div class="header">
       <div>
         <div class="brand">RinoSeller</div>
-        <div class="brand-sub">Catálogo de Produtos</div>
+        <div class="brand-sub">Catálogo de Produtos — ${scopeLabel}</div>
       </div>
       <div class="doc-meta">
         <div class="doc-title">Produtos</div>
@@ -122,7 +123,7 @@ export function exportProductsPDF(products: Product[]) {
     <table>
       <thead>
         <tr>
-          <th>Cód.</th><th>Nome</th><th>Categoria</th>
+          <th>Cód.</th><th>Nome</th><th>Categoria</th><th>Marca</th>
           <th class="r">Preço venda</th><th class="r">Custo</th><th class="c">Estoque</th>
         </tr>
       </thead>
@@ -130,7 +131,7 @@ export function exportProductsPDF(products: Product[]) {
     </table>
   `
 
-  openPrint('Catálogo de Produtos — RinoSeller', body)
+  openPrint(`Catálogo de Produtos — ${scopeLabel} — RinoSeller`, body)
 }
 
 export function exportStockValuationPDF(products: Product[], focus: 'custo' | 'venda' | 'ambos' = 'ambos') {

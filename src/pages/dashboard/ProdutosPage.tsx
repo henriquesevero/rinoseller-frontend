@@ -8,21 +8,65 @@ function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+interface FilterDropdownProps {
+  value: string
+  options: string[]
+  onChange: (v: string) => void
+}
+
+function FilterDropdown({ value, options, onChange }: FilterDropdownProps) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="h-[38px] flex items-center justify-between gap-2 px-3.5 rounded-xl text-xs font-medium border transition-all bg-[#141414] text-gray-500 border-[#222] hover:text-gray-300 min-w-[170px]"
+      >
+        <span className="truncate">{value}</span>
+        <svg
+          width="10" height="6" viewBox="0 0 10 6" fill="none"
+          className={`flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 min-w-full bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-hidden z-20 shadow-xl max-h-60 overflow-y-auto">
+          {options.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onMouseDown={() => { onChange(opt); setOpen(false) }}
+              className={`w-full text-left px-4 py-2.5 text-xs whitespace-nowrap transition-colors ${
+                opt === value ? 'text-[#28AEA4] bg-[#28AEA4]/5' : 'text-gray-300 hover:bg-[#272727]'
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const DEFAULT_CATEGORIES: CategoryDef[] = [
-  { name: 'Lavatório',    showFilter: true },
-  { name: 'Químicos',     showFilter: true },
-  { name: 'Finalizadores',showFilter: true },
-  { name: 'Tratamentos',  showFilter: true },
-  { name: 'Coloração',    showFilter: true },
-  { name: 'Outros',       showFilter: true },
+  { name: 'Lavatório' },
+  { name: 'Químicos' },
+  { name: 'Finalizadores' },
+  { name: 'Tratamentos' },
+  { name: 'Coloração' },
+  { name: 'Outros' },
 ]
 
-interface CategoryDef { name: string; showFilter: boolean }
+interface CategoryDef { name: string }
 
 function loadCategories(): CategoryDef[] {
   try {
     const raw = localStorage.getItem('korav_categories')
-    if (raw) return JSON.parse(raw) as CategoryDef[]
+    if (raw) return (JSON.parse(raw) as CategoryDef[]).map(c => ({ name: c.name }))
   } catch { /* ignore */ }
   return DEFAULT_CATEGORIES
 }
@@ -31,11 +75,25 @@ function saveCategories(cats: CategoryDef[]) {
   localStorage.setItem('korav_categories', JSON.stringify(cats))
 }
 
+interface BrandDef { name: string }
+
+function loadBrands(): BrandDef[] {
+  try {
+    const raw = localStorage.getItem('korav_brands')
+    if (raw) return (JSON.parse(raw) as BrandDef[]).map(b => ({ name: b.name }))
+  } catch { /* ignore */ }
+  return []
+}
+
+function saveBrands(brands: BrandDef[]) {
+  localStorage.setItem('korav_brands', JSON.stringify(brands))
+}
+
 type EditField = 'price' | 'stock'
 interface EditState { productId: string; field: EditField; value: string }
 
 interface ImportRow {
-  name: string; category: string; price: number; cost_price: number
+  name: string; category: string; brand: string; price: number; cost_price: number
   stock_quantity: number; code: string; error?: string
 }
 
@@ -50,7 +108,7 @@ function padCode(n: number): string {
   return n.toString().padStart(3, '0')
 }
 
-const EMPTY_NEW = { name: '', category: '', price: '', cost_price: '', stock_quantity: '', code: '' }
+const EMPTY_NEW = { name: '', category: '', brand: '', price: '', cost_price: '', stock_quantity: '', code: '' }
 
 export function ProdutosPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -65,9 +123,13 @@ export function ProdutosPage() {
   const [kitSearch, setKitSearch] = useState('')
   const [filterCat, setFilterCat] = useState('Todos')
   const [categories, setCategories] = useState<CategoryDef[]>(loadCategories)
-  const [showCatModal, setShowCatModal] = useState(false)
+  const [filterBrand, setFilterBrand] = useState('Todas')
+  const [brands, setBrands] = useState<BrandDef[]>(loadBrands)
+  const [onlyLowStock, setOnlyLowStock] = useState(false)
+  const [showManageModal, setShowManageModal] = useState(false)
+  const [manageTab, setManageTab] = useState<'categoria' | 'marca'>('categoria')
   const [newCatName, setNewCatName] = useState('')
-  const [newCatFilter, setNewCatFilter] = useState(true)
+  const [newBrandName, setNewBrandName] = useState('')
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
@@ -138,6 +200,7 @@ export function ProdutosPage() {
       await createProduct({
         name: newP.name,
         category: newP.category,
+        brand: newP.brand,
         price: parseFloat(newP.price) || 0,
         cost_price: parseFloat(newP.cost_price) || 0,
         stock_quantity: isKit ? 0 : (parseInt(newP.stock_quantity) || 0),
@@ -172,13 +235,14 @@ export function ProdutosPage() {
       let codeNum = nextCodeNum(products)
       const rows: ImportRow[] = lines.map(line => {
         const parts = line.split(';').map(f => f.trim())
-        const [nameRaw, catRaw, priceRaw, costRaw, stockRaw] = parts
+        const [nameRaw, catRaw, brandRaw, priceRaw, costRaw, stockRaw] = parts
         const price = parseFloat((priceRaw ?? '').replace(',', '.'))
         const cost_price = parseFloat((costRaw ?? '').replace(',', '.'))
         const stock_quantity = parseInt(stockRaw ?? '0', 10)
         return {
           name: nameRaw ?? '',
           category: catRaw || 'Outros',
+          brand: brandRaw ?? '',
           price: isNaN(price) ? 0 : price,
           cost_price: isNaN(cost_price) ? 0 : cost_price,
           stock_quantity: isNaN(stock_quantity) ? 0 : stock_quantity,
@@ -186,14 +250,23 @@ export function ProdutosPage() {
           error: !nameRaw ? 'Nome ausente' : undefined,
         }
       })
-      // detect new categories from CSV and add them (showFilter: false by default)
+      // detect new categories/marcas no CSV e cadastra automaticamente
       const csvCats = [...new Set(rows.map(r => r.category).filter(Boolean))]
       setCategories(prev => {
         const existing = new Set(prev.map(c => c.name))
-        const toAdd = csvCats.filter(n => !existing.has(n)).map(n => ({ name: n, showFilter: false }))
+        const toAdd = csvCats.filter(n => !existing.has(n)).map(n => ({ name: n }))
         if (toAdd.length === 0) return prev
         const next = [...prev, ...toAdd]
         saveCategories(next)
+        return next
+      })
+      const csvBrands = [...new Set(rows.map(r => r.brand).filter(Boolean))]
+      setBrands(prev => {
+        const existing = new Set(prev.map(b => b.name))
+        const toAdd = csvBrands.filter(n => !existing.has(n)).map(n => ({ name: n }))
+        if (toAdd.length === 0) return prev
+        const next = [...prev, ...toAdd]
+        saveBrands(next)
         return next
       })
       setImportRows(rows)
@@ -213,6 +286,7 @@ export function ProdutosPage() {
         await createProduct({
           name: row.name,
           category: row.category,
+          brand: row.brand,
           price: row.price,
           cost_price: row.cost_price,
           stock_quantity: row.stock_quantity,
@@ -228,12 +302,13 @@ export function ProdutosPage() {
   }
 
   const filtered = products
-    .filter(p => {
-      if (filterCat === 'Todos') return true
-      if (filterCat === 'Estoque Baixo') return !p.is_kit && p.stock_quantity <= 3
-      return p.category === filterCat
-    })
+    .filter(p => filterCat === 'Todos' || p.category === filterCat)
+    .filter(p => filterBrand === 'Todas' || p.brand === filterBrand)
+    .filter(p => !onlyLowStock || (!p.is_kit && p.stock_quantity <= 3))
     .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+
+  const exportScopeLabel = filterBrand === 'Todas' ? 'Total' : filterBrand
+  const exportList = filterBrand === 'Todas' ? products : products.filter(p => p.brand === filterBrand)
 
   const validImport = importRows.filter(r => !r.error)
 
@@ -265,13 +340,15 @@ export function ProdutosPage() {
             Importar CSV
           </button>
           <button
-            onClick={() => exportProductsPDF(products)}
+            onClick={() => exportProductsPDF(exportList, exportScopeLabel)}
+            title={`Exportar ${exportScopeLabel === 'Total' ? 'todos os produtos' : `apenas a marca ${exportScopeLabel}`}`}
             className="flex items-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
             Exportar PDF
+            <span className="text-[10px] text-gray-600 font-normal">({exportScopeLabel})</span>
           </button>
           <button
             onClick={openNew}
@@ -302,31 +379,53 @@ export function ProdutosPage() {
       </div>
 
       {/* Filters */}
-      <div className="px-6 pt-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-        {['Todos', 'Estoque Baixo', ...categories.filter(c => c.showFilter).map(c => c.name)].map(c => (
-          <button
-            key={c}
-            onClick={() => setFilterCat(c)}
-            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-              filterCat === c
-                ? c === 'Estoque Baixo'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  : 'bg-[#28AEA4]/15 text-[#28AEA4] border border-[#28AEA4]/30'
-                : 'bg-[#141414] text-gray-500 border border-[#222] hover:text-gray-300'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
+      <div className="px-6 pt-4 flex items-end gap-3 flex-wrap">
+        <div>
+          <label className="filter-label">Categoria</label>
+          <FilterDropdown
+            value={filterCat === 'Todos' ? 'Todas as categorias' : filterCat}
+            options={['Todas as categorias', ...categories.map(c => c.name)]}
+            onChange={v => setFilterCat(v === 'Todas as categorias' ? 'Todos' : v)}
+          />
+        </div>
+        <div>
+          <label className="filter-label">Marca</label>
+          <FilterDropdown
+            value={filterBrand === 'Todas' ? 'Todas as marcas' : filterBrand}
+            options={['Todas as marcas', ...brands.map(b => b.name)]}
+            onChange={v => setFilterBrand(v === 'Todas as marcas' ? 'Todas' : v)}
+          />
+        </div>
         <button
-          onClick={() => setShowCatModal(true)}
-          title="Gerenciar categorias"
-          className="flex-shrink-0 ml-1 w-7 h-7 rounded-full bg-[#141414] border border-[#222] text-gray-600 hover:text-[#28AEA4] hover:border-[#28AEA4]/30 flex items-center justify-center transition-all"
+          onClick={() => setOnlyLowStock(v => !v)}
+          className={`h-[38px] flex items-center gap-1.5 px-3.5 rounded-xl text-xs font-medium border transition-all ${
+            onlyLowStock
+              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+              : 'bg-[#141414] text-gray-500 border-[#222] hover:text-gray-300'
+          }`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Estoque baixo
+        </button>
+        {(filterCat !== 'Todos' || filterBrand !== 'Todas' || onlyLowStock) && (
+          <button
+            onClick={() => { setFilterCat('Todos'); setFilterBrand('Todas'); setOnlyLowStock(false) }}
+            className="h-[38px] flex items-center px-3 text-xs text-gray-500 hover:text-white transition-colors"
+          >
+            Limpar filtros
+          </button>
+        )}
+        <button
+          onClick={() => setShowManageModal(true)}
+          className="h-[38px] ml-auto flex items-center gap-1.5 px-3.5 rounded-xl text-xs font-medium text-gray-500 border border-[#222] hover:text-white hover:border-[#3a3a3a] transition-all"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
             <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
           </svg>
+          Categorias e Marcas
         </button>
       </div>
 
@@ -365,6 +464,11 @@ export function ProdutosPage() {
                     <span className="text-[10px] bg-[#28AEA4]/10 text-[#28AEA4] border border-[#28AEA4]/20 rounded-full px-2 py-0.5 font-medium tracking-wider uppercase flex-shrink-0">
                       {product.category}
                     </span>
+                    {product.brand && (
+                      <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full px-2 py-0.5 font-medium tracking-wider uppercase flex-shrink-0">
+                        {product.brand}
+                      </span>
+                    )}
                     {!product.is_kit && product.stock_quantity === 0 && (
                       <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-2 py-0.5 font-medium flex-shrink-0">
                         Zerado
@@ -483,6 +587,14 @@ export function ProdutosPage() {
                 <input className="field-input" placeholder="Ex: Shampoo Lavatório 5L"
                   value={newP.name} onChange={e => setNewP(p => ({ ...p, name: e.target.value }))} />
               </div>
+              <div>
+                <label className="field-label">Marca</label>
+                <select className="field-input" value={newP.brand}
+                  onChange={e => setNewP(p => ({ ...p, brand: e.target.value }))}>
+                  <option value="">Selecionar...</option>
+                  {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="field-label">Preço de Venda (R$) *</label>
@@ -590,6 +702,7 @@ export function ProdutosPage() {
               <div>
                 <h2 className="text-lg font-bold text-white">Importar Produtos</h2>
                 <p className="text-xs text-gray-500 mt-0.5">{importRows.length} linha(s) · {validImport.length} válida(s)</p>
+                <p className="text-[10px] text-gray-600 mt-1 font-mono">Formato: nome;categoria;marca;preço;custo;estoque</p>
               </div>
               <button onClick={() => { setShowImport(false); setImportRows([]) }} className="text-gray-600 hover:text-white text-2xl leading-none">×</button>
             </div>
@@ -600,6 +713,7 @@ export function ProdutosPage() {
                     <th className="text-left px-6 py-3 font-semibold">Cód.</th>
                     <th className="text-left px-3 py-3 font-semibold">Nome</th>
                     <th className="text-left px-3 py-3 font-semibold">Categoria</th>
+                    <th className="text-left px-3 py-3 font-semibold">Marca</th>
                     <th className="text-right px-3 py-3 font-semibold">Preço</th>
                     <th className="text-right px-3 py-3 font-semibold">Custo</th>
                     <th className="text-center px-6 py-3 font-semibold">Estoque</th>
@@ -614,6 +728,7 @@ export function ProdutosPage() {
                         {row.error && <span className="ml-2 text-red-400 text-[10px]">({row.error})</span>}
                       </td>
                       <td className="px-3 py-2.5 text-gray-400">{row.category}</td>
+                      <td className="px-3 py-2.5 text-gray-400">{row.brand || '—'}</td>
                       <td className="px-3 py-2.5 text-right text-[#28AEA4]">{formatBRL(row.price)}</td>
                       <td className="px-3 py-2.5 text-right text-gray-500">{formatBRL(row.cost_price)}</td>
                       <td className="px-6 py-2.5 text-center text-gray-400">{row.stock_quantity}</td>
@@ -648,98 +763,141 @@ export function ProdutosPage() {
         onCancel={() => setConfirmDelete(null)}
       />
 
-      {/* ── Modal Categorias ── */}
-      {showCatModal && (
+      {/* ── Modal Categorias e Marcas ── */}
+      {showManageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCatModal(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowManageModal(false)} />
           <div className="relative bg-[#111111] border border-[#222] rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e1e]">
-              <h2 className="text-sm font-bold text-white">Gerenciar Categorias</h2>
-              <button onClick={() => setShowCatModal(false)} className="text-gray-600 hover:text-gray-300 text-xl leading-none">×</button>
+              <h2 className="text-sm font-bold text-white">Categorias e Marcas</h2>
+              <button onClick={() => setShowManageModal(false)} className="text-gray-600 hover:text-gray-300 text-xl leading-none">×</button>
             </div>
 
-            {/* Lista */}
-            <div className="px-6 py-4 space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
-              {categories.length === 0 && (
-                <p className="text-xs text-gray-600 text-center py-4">Nenhuma categoria criada.</p>
-              )}
-              {categories.map((cat, i) => (
-                <div key={cat.name} className="flex items-center justify-between gap-3 bg-[#171717] border border-[#222] rounded-xl px-4 py-2.5">
-                  <span className="text-sm text-white truncate flex-1">{cat.name}</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        const updated = categories.map((c, idx) => idx === i ? { ...c, showFilter: !c.showFilter } : c)
-                        setCategories(updated)
-                        saveCategories(updated)
-                      }}
-                      title={cat.showFilter ? 'Remover dos filtros' : 'Mostrar como filtro'}
-                      className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
-                        cat.showFilter
-                          ? 'bg-[#28AEA4]/10 text-[#28AEA4] border-[#28AEA4]/30'
-                          : 'bg-white/[0.04] text-gray-600 border-white/[0.07]'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${cat.showFilter ? 'bg-[#28AEA4]' : 'bg-gray-600'}`} />
-                      {cat.showFilter ? 'Filtro ativo' : 'Sem filtro'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        const updated = categories.filter((_, idx) => idx !== i)
-                        setCategories(updated)
-                        saveCategories(updated)
-                      }}
-                      className="text-gray-700 hover:text-red-400 transition-colors text-base leading-none"
-                    >×</button>
-                  </div>
+            {/* Tabs */}
+            <div className="flex px-6 pt-3 gap-1 border-b border-[#1e1e1e]">
+              <button
+                onClick={() => setManageTab('categoria')}
+                className={`px-3.5 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 ${
+                  manageTab === 'categoria' ? 'text-[#28AEA4] border-[#28AEA4]' : 'text-gray-500 border-transparent hover:text-gray-300'
+                }`}
+              >
+                Categorias
+              </button>
+              <button
+                onClick={() => setManageTab('marca')}
+                className={`px-3.5 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 ${
+                  manageTab === 'marca' ? 'text-blue-400 border-blue-400' : 'text-gray-500 border-transparent hover:text-gray-300'
+                }`}
+              >
+                Marcas
+              </button>
+            </div>
+
+            {manageTab === 'categoria' ? (
+              <>
+                <div className="px-6 py-4 space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
+                  {categories.length === 0 && (
+                    <p className="text-xs text-gray-600 text-center py-4">Nenhuma categoria criada.</p>
+                  )}
+                  {categories.map((cat, i) => (
+                    <div key={cat.name} className="flex items-center justify-between gap-3 bg-[#171717] border border-[#222] rounded-xl px-4 py-2.5">
+                      <span className="text-sm text-white truncate flex-1">{cat.name}</span>
+                      <button
+                        onClick={() => {
+                          const updated = categories.filter((_, idx) => idx !== i)
+                          setCategories(updated)
+                          saveCategories(updated)
+                        }}
+                        className="text-gray-700 hover:text-red-400 transition-colors text-base leading-none"
+                      >×</button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            {/* Nova categoria */}
-            <div className="px-6 pb-5 border-t border-[#1e1e1e] pt-4 space-y-3">
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Nova categoria</p>
-              <input
-                className="field-input"
-                placeholder="Nome da categoria"
-                value={newCatName}
-                onChange={e => setNewCatName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') e.currentTarget.blur()
-                }}
-              />
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    const updated = categories.map(c => ({ ...c, showFilter: !newCatFilter ? c.showFilter : c.showFilter }))
-                    void updated
-                    setNewCatFilter(v => !v)
-                  }}
-                  className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-xl border transition-all ${
-                    newCatFilter
-                      ? 'bg-[#28AEA4]/10 text-[#28AEA4] border-[#28AEA4]/30'
-                      : 'bg-white/[0.04] text-gray-500 border-white/[0.07]'
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${newCatFilter ? 'bg-[#28AEA4]' : 'bg-gray-600'}`} />
-                  {newCatFilter ? 'Mostrar como filtro' : 'Não mostrar como filtro'}
-                </button>
-                <button
-                  disabled={!newCatName.trim() || categories.some(c => c.name.toLowerCase() === newCatName.trim().toLowerCase())}
-                  onClick={() => {
-                    const trimmed = newCatName.trim()
-                    if (!trimmed) return
-                    const updated = [...categories, { name: trimmed, showFilter: newCatFilter }]
-                    setCategories(updated)
-                    saveCategories(updated)
-                    setNewCatName('')
-                  }}
-                  className="bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
-                >
-                  Adicionar
-                </button>
-              </div>
-            </div>
+                <div className="px-6 pb-5 border-t border-[#1e1e1e] pt-4 flex gap-2">
+                  <input
+                    className="field-input"
+                    placeholder="Nome da nova categoria"
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key !== 'Enter') return
+                      const trimmed = newCatName.trim()
+                      if (!trimmed || categories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) return
+                      const updated = [...categories, { name: trimmed }]
+                      setCategories(updated)
+                      saveCategories(updated)
+                      setNewCatName('')
+                    }}
+                  />
+                  <button
+                    disabled={!newCatName.trim() || categories.some(c => c.name.toLowerCase() === newCatName.trim().toLowerCase())}
+                    onClick={() => {
+                      const trimmed = newCatName.trim()
+                      if (!trimmed) return
+                      const updated = [...categories, { name: trimmed }]
+                      setCategories(updated)
+                      saveCategories(updated)
+                      setNewCatName('')
+                    }}
+                    className="bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:opacity-40 text-white text-xs font-bold px-4 rounded-xl transition-all flex-shrink-0"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="px-6 py-4 space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
+                  {brands.length === 0 && (
+                    <p className="text-xs text-gray-600 text-center py-4">Nenhuma marca criada.</p>
+                  )}
+                  {brands.map((brand, i) => (
+                    <div key={brand.name} className="flex items-center justify-between gap-3 bg-[#171717] border border-[#222] rounded-xl px-4 py-2.5">
+                      <span className="text-sm text-white truncate flex-1">{brand.name}</span>
+                      <button
+                        onClick={() => {
+                          const updated = brands.filter((_, idx) => idx !== i)
+                          setBrands(updated)
+                          saveBrands(updated)
+                        }}
+                        className="text-gray-700 hover:text-red-400 transition-colors text-base leading-none"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-6 pb-5 border-t border-[#1e1e1e] pt-4 flex gap-2">
+                  <input
+                    className="field-input"
+                    placeholder="Nome da nova marca"
+                    value={newBrandName}
+                    onChange={e => setNewBrandName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key !== 'Enter') return
+                      const trimmed = newBrandName.trim()
+                      if (!trimmed || brands.some(b => b.name.toLowerCase() === trimmed.toLowerCase())) return
+                      const updated = [...brands, { name: trimmed }]
+                      setBrands(updated)
+                      saveBrands(updated)
+                      setNewBrandName('')
+                    }}
+                  />
+                  <button
+                    disabled={!newBrandName.trim() || brands.some(b => b.name.toLowerCase() === newBrandName.trim().toLowerCase())}
+                    onClick={() => {
+                      const trimmed = newBrandName.trim()
+                      if (!trimmed) return
+                      const updated = [...brands, { name: trimmed }]
+                      setBrands(updated)
+                      saveBrands(updated)
+                      setNewBrandName('')
+                    }}
+                    className="bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white text-xs font-bold px-4 rounded-xl transition-all flex-shrink-0"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -748,7 +906,18 @@ export function ProdutosPage() {
         .field-label { display:block; font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.15em; margin-bottom:6px; }
         .field-input { width:100%; background:#171717; border:1px solid #2a2a2a; color:white; border-radius:12px; padding:10px 14px; font-size:14px; outline:none; transition:border-color 0.2s; }
         .field-input:focus { border-color:#28AEA4; }
-        .field-input option { background:#171717; }
+        select.field-input {
+          color-scheme: dark;
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          padding-right: 36px;
+        }
+        .field-input option { background-color:#171717; color:white; }
+        .filter-label { display:block; font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:5px; }
       `}</style>
     </div>
   )
