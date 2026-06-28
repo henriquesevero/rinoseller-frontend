@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { PasswordInput } from '../components/PasswordInput'
 
 export function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -83,26 +84,22 @@ export function ResetPasswordPage() {
                 <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
                   Nova senha
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={setPassword}
                   placeholder="mínimo 6 caracteres"
                   autoComplete="new-password"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
                   Confirmar nova senha
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
+                  onChange={setConfirm}
                   placeholder="repita a senha"
                   autoComplete="new-password"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
                 />
               </div>
 
