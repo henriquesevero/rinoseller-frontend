@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { PasswordInput } from '../components/PasswordInput'
+import { AuthErrorBanner } from '../components/AuthErrorBanner'
 
 const STEPS = [
   {
@@ -28,6 +29,7 @@ export function RegisterPage() {
   const [password,  setPassword]  = useState('')
   const [confirm,   setConfirm]   = useState('')
   const [error,     setError]     = useState('')
+  const [errorCode, setErrorCode] = useState<string | undefined>(undefined)
   const [loading,   setLoading]   = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
@@ -36,6 +38,7 @@ export function RegisterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+    setErrorCode(undefined)
     if (password !== confirm) { setError('As senhas não coincidem.'); return }
     if (password.length < 6)  { setError('A senha deve ter ao menos 6 caracteres.'); return }
 
@@ -47,7 +50,7 @@ export function RegisterPage() {
         body: JSON.stringify({ name, email, password }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Erro ao criar conta.'); setLoading(false); return }
+      if (!res.ok) { setError(data.error ?? 'Erro ao criar conta.'); setErrorCode(data.code); setLoading(false); return }
 
       setSubmitted(true)
     } catch {
@@ -187,11 +190,7 @@ export function RegisterPage() {
                   />
                 </div>
 
-                {error && (
-                  <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5 text-center">
-                    <p className="text-red-400 text-sm">{error}</p>
-                  </div>
-                )}
+                {error && <AuthErrorBanner code={errorCode} message={error} email={email.trim()} />}
 
                 <button
                   type="submit"

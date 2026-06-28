@@ -12,7 +12,7 @@ interface AuthCtx {
   user: AuthUser | null
   token: string | null
   isAuthenticated: boolean
-  login(email: string, password: string): Promise<{ ok: boolean; error?: string }>
+  login(email: string, password: string): Promise<{ ok: boolean; error?: string; code?: string }>
   logout(): void
 }
 
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
-      if (!res.ok) return { ok: false, error: data.error ?? 'Erro ao autenticar' }
+      if (!res.ok) return { ok: false, error: data.error ?? 'Erro ao autenticar', code: data.code }
 
       localStorage.setItem(TOKEN_KEY, data.token)
       localStorage.setItem(USER_KEY, JSON.stringify(data.user))

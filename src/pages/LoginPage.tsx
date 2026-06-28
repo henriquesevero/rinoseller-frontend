@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { SplashScreen } from '../components/SplashScreen'
+import { AuthErrorBanner } from '../components/AuthErrorBanner'
 
 const HIGHLIGHTS = [
   {
@@ -24,6 +25,7 @@ export function LoginPage() {
   const [email,      setEmail]      = useState('')
   const [password,   setPassword]   = useState('')
   const [error,      setError]      = useState('')
+  const [errorCode,  setErrorCode]  = useState<string | undefined>(undefined)
   const [loading,    setLoading]    = useState(false)
   const [showSplash, setShowSplash] = useState(false)
   const [fadingOut,  setFadingOut]  = useState(false)
@@ -34,6 +36,7 @@ export function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setErrorCode(undefined)
     const result = await login(email.trim(), password)
     if (result.ok) {
       setShowSplash(true)
@@ -41,6 +44,7 @@ export function LoginPage() {
       setTimeout(() => navigate('/dashboard', { replace: true }), 1200)
     } else {
       setError(result.error ?? 'Usuário ou senha incorretos.')
+      setErrorCode(result.code)
       setLoading(false)
     }
   }
@@ -133,11 +137,7 @@ export function LoginPage() {
                 />
               </div>
 
-              {error && (
-                <div className="bg-red-950/40 border border-red-800/40 rounded-xl px-4 py-2.5">
-                  <p className="text-red-400 text-sm text-center">{error}</p>
-                </div>
-              )}
+              {error && <AuthErrorBanner code={errorCode} message={error} email={email.trim()} />}
 
               <button
                 type="submit"
