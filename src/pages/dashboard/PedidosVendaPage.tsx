@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getQuotes, getClients, getProducts, createQuote, approveQuote, deliverQuote, invoiceQuote, deleteQuote, getAllPayments } from '../../api/client'
-import { downloadQuotePDF, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
+import { downloadQuotePDF, sendQuoteByEmail, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
 import { withMinDuration } from '../../utils/loading'
 import type { Quote, Client, Product, ClientPayment } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
@@ -154,6 +154,13 @@ export default function PedidosVendaPage() {
   const handleDownloadPDF = async (q: Quote) => {
     setActionLoading('Gerando PDF…')
     try { await downloadQuotePDF(q, clients, 'pedido') }
+    finally { setActionLoading('') }
+  }
+
+  const handleSendEmail = async (q: Quote) => {
+    setActionLoading('Enviando e-mail…')
+    try { await sendQuoteByEmail(q, clients, 'pedido') }
+    catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro ao enviar e-mail') }
     finally { setActionLoading('') }
   }
 
@@ -361,6 +368,18 @@ export default function PedidosVendaPage() {
                     <path d="M11.999 0C5.373 0 0 5.373 0 12c0 2.117.554 4.103 1.523 5.826L.047 24l6.345-1.658A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.006-1.374l-.36-.213-3.727.977.994-3.636-.234-.373A9.818 9.818 0 0 1 2.182 12c0-5.42 4.398-9.818 9.818-9.818 5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.399 9.818-9.819 9.818z"/>
                   </svg>
                   WhatsApp
+                </button>
+
+                <button
+                  onClick={() => handleSendEmail(q)}
+                  disabled={!clients.find(c => c.id === q.client_id)?.email}
+                  title={!clients.find(c => c.id === q.client_id)?.email ? 'Cliente sem e-mail cadastrado' : undefined}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-30"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  E-mail
                 </button>
 
                 <button

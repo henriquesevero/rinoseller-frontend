@@ -142,6 +142,12 @@ export const cancelQuote = (id: string) =>
 export const deleteQuote = (id: string) =>
   request<{ message: string }>(`/quotes/${id}`, { method: 'DELETE' })
 
+export const sendQuoteEmail = (id: string, kind: 'orcamento' | 'pedido', pdfBase64: string) =>
+  request<{ message: string }>(`/quotes/${id}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify({ kind, pdf_base64: pdfBase64 }),
+  })
+
 export const deleteOrder = (id: string) =>
   request<{ message: string }>(`/orders/${id}`, { method: 'DELETE' })
 

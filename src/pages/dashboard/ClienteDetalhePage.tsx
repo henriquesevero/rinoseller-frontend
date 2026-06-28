@@ -5,7 +5,7 @@ import {
   deleteClient, getClientPaymentHistory, invoiceQuote, deliverQuote,
   clearClientPaymentHistory, clearClientOrders, clearClientQuotes,
 } from '../../api/client'
-import { downloadQuotePDF } from '../../utils/quoteDocument'
+import { downloadQuotePDF, sendQuoteByEmail } from '../../utils/quoteDocument'
 import { exportClientReportPDF } from '../../utils/clientDocument'
 import type { Client, Order, Quote, ClientPayment } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
@@ -230,6 +230,15 @@ export function ClienteDetalhePage() {
     if (!client) return
     setActionLoading('Gerando PDF…')
     try { await downloadQuotePDF(q, [client]) }
+    finally { setActionLoading('') }
+  }
+
+  const handleSendEmail = async (q: Quote) => {
+    if (!client) return
+    const kind = (q.status === 'Aguardando Aprovação' || q.status === 'Cancelado') ? 'orcamento' : 'pedido'
+    setActionLoading('Enviando e-mail…')
+    try { await sendQuoteByEmail(q, [client], kind) }
+    catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro ao enviar e-mail') }
     finally { setActionLoading('') }
   }
 
@@ -587,6 +596,15 @@ export function ClienteDetalhePage() {
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                         Gerar PDF
+                      </button>
+                      <button
+                        onClick={() => handleSendEmail(q)}
+                        disabled={!client.email}
+                        title={!client.email ? 'Cliente sem e-mail cadastrado' : undefined}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 rounded-lg text-xs font-medium hover:text-white hover:border-[#3a3a3a] transition-colors disabled:opacity-30"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        E-mail
                       </button>
                       {q.status === 'Aprovado' && (
                         <button

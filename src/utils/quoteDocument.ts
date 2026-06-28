@@ -1,6 +1,7 @@
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import type { Client, Quote } from '../types'
+import { sendQuoteEmail } from '../api/client'
 
 function fmt(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -200,21 +201,21 @@ async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' 
       scrollY: 0,
     })
 
-    const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
     const pgW     = pdf.internal.pageSize.getWidth()
     const pgH     = pdf.internal.pageSize.getHeight()
     const imgW    = pgW
     const imgH    = (canvas.height * pgW) / canvas.width
-    const imgData = canvas.toDataURL('image/png')
+    const imgData = canvas.toDataURL('image/jpeg', 0.85)
 
-    pdf.addImage(imgData, 'PNG', 0, 0, imgW, imgH)
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH)
 
     // Adiciona páginas extras se necessário
     let remaining = imgH - pgH
     let offset    = -pgH
     while (remaining > 0) {
       pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, offset, imgW, imgH)
+      pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH)
       offset    -= pgH
       remaining -= pgH
     }
@@ -246,6 +247,26 @@ export async function downloadQuotePDF(quote: Quote, clients: Client[], kind: 'o
   link.download = fileName
   link.click()
   URL.revokeObjectURL(blobUrl)
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve((reader.result as string).split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+export async function sendQuoteByEmail(quote: Quote, clients: Client[], kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<void> {
+  const client = findClient(quote, clients)
+  if (!client?.email) {
+    throw new Error('Este cliente não tem e-mail cadastrado.')
+  }
+
+  const pdfBlob = await generatePDFBlob(quote, client, kind)
+  const pdfBase64 = await blobToBase64(pdfBlob)
+  await sendQuoteEmail(quote.id, kind, pdfBase64)
 }
 
 export async function shareQuoteOnWhatsApp(quote: Quote, clients: Client[], kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<void> {

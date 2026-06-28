@@ -5,7 +5,7 @@ import {
   getClients, getProducts, getQuotes,
 } from '../../api/client'
 import type { Client, Product, Quote, QuoteStatus } from '../../types'
-import { downloadQuotePDF, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
+import { downloadQuotePDF, sendQuoteByEmail, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
 import { withMinDuration } from '../../utils/loading'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { LoadingOverlay } from '../../components/LoadingOverlay'
@@ -126,6 +126,13 @@ export default function OrcamentosPage() {
   const handleDownloadPDF = async (q: Quote) => {
     setActionLoading('Gerando PDF…')
     try { await downloadQuotePDF(q, clients) }
+    finally { setActionLoading('') }
+  }
+
+  const handleSendEmail = async (q: Quote) => {
+    setActionLoading('Enviando e-mail…')
+    try { await sendQuoteByEmail(q, clients, 'orcamento') }
+    catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro ao enviar e-mail') }
     finally { setActionLoading('') }
   }
 
@@ -271,6 +278,17 @@ export default function OrcamentosPage() {
                     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.845L0 24l6.335-1.508A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.5-5.062-1.373l-.363-.215-3.762.896.957-3.67-.236-.38A9.944 9.944 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
                   </svg>
                   WhatsApp
+                </button>
+                <button
+                  onClick={() => handleSendEmail(q)}
+                  disabled={!clients.find(c => c.id === q.client_id)?.email}
+                  title={!clients.find(c => c.id === q.client_id)?.email ? 'Cliente sem e-mail cadastrado' : undefined}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-30"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  E-mail
                 </button>
                 <button
                   onClick={() => setConfirmDelete(q.id)}
