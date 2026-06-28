@@ -73,6 +73,13 @@ export interface CapitalContribution {
   created_at: string
 }
 
+export interface BrandCatalog {
+  id: string
+  brand_name: string
+  drive_url: string
+  created_at: string
+}
+
 export type ExpenseStatus = 'Pendente' | 'Pago'
 
 export interface Expense {

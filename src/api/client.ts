@@ -1,4 +1,4 @@
-import type { CapitalContribution, CapitalMovementType, Client, Expense, Order, OrderItem, Product, Quote } from '../types'
+import type { BrandCatalog, CapitalContribution, CapitalMovementType, Client, Expense, Order, OrderItem, Product, Quote } from '../types'
 import type { AuthUser } from '../contexts/AuthContext'
 
 const BASE = '/api'
@@ -176,3 +176,14 @@ export const addCapitalContribution = (e: { description?: string; amount: number
 
 export const deleteCapitalContribution = (id: string) =>
   request<{ message: string }>(`/capital-contributions/${id}`, { method: 'DELETE' })
+
+// ── Brand Catalogs (Catálogos de Marca) ──────────────────────────────────────
+
+export const getBrandCatalogs = () =>
+  request<BrandCatalog[]>('/brand-catalogs')
+
+export const addBrandCatalog = (c: { brand_name: string; drive_url: string }) =>
+  request<BrandCatalog>('/brand-catalogs', { method: 'POST', body: JSON.stringify(c) })
+
+export const deleteBrandCatalog = (id: string) =>
+  request<{ message: string }>(`/brand-catalogs/${id}`, { method: 'DELETE' })
