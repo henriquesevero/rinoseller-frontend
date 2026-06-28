@@ -1,5 +1,6 @@
-import { useState, useRef, type ChangeEvent } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { UserAvatar } from '../../components/UserAvatar'
 
 const PLAN_FEATURES: Record<string, string[]> = {
   basic:        ['Até 10 clientes', 'Até 15 pedidos/mês', 'Controle de estoque', 'Relatórios básicos'],
@@ -60,25 +61,12 @@ export default function PerfilPage() {
   const [currentPass, setCurrentPass] = useState('')
   const [newPass,     setNewPass]     = useState('')
   const [confirmPass, setConfirmPass] = useState('')
-  const [avatar,      setAvatar]      = useState<string | null>(null)
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
   const [passError,   setPassError]   = useState('')
 
-  const fileRef = useRef<HTMLInputElement>(null)
-
   const currentPlan = 'professional'
   const planLabel   = { basic: 'Básico', professional: 'Profissional', ai: 'IA' }[currentPlan]
-
-  const initials = name.trim().split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
-
-  function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setAvatar(reader.result as string)
-    reader.readAsDataURL(file)
-  }
 
   async function handleSaveProfile() {
     setSaving(true)
@@ -108,33 +96,21 @@ export default function PerfilPage() {
       <div className="border-t border-[#1e1e1e]" />
 
       {/* ── Foto e identidade ── */}
-      <Section title="Foto de perfil" desc="Sua foto será exibida no sistema.">
+      <Section title="Foto de perfil" desc="Sua foto é a mesma associada ao seu e-mail no Gravatar.">
         <Card>
           <div className="flex items-center gap-6">
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-full bg-[#28AEA4]/20 border-2 border-[#28AEA4]/40 flex items-center justify-center overflow-hidden">
-                {avatar
-                  ? <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-                  : <span className="text-2xl font-bold text-[#28AEA4]">{initials || '?'}</span>
-                }
-              </div>
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#28AEA4] flex items-center justify-center hover:bg-[#3cbdb6] transition-colors"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                  <circle cx="12" cy="13" r="4"/>
-                </svg>
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            </div>
+            <UserAvatar name={name} email={email} size={80} />
             <div>
               <p className="text-sm font-semibold text-white">{name || 'Seu nome'}</p>
               <p className="text-xs text-gray-500 mt-0.5">{email}</p>
-              <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-widest bg-[#28AEA4]/10 text-[#28AEA4] border border-[#28AEA4]/20 rounded-full px-2.5 py-0.5">
-                {user?.role === 'admin' ? 'Administrador' : 'Vendedor'}
-              </span>
+              <a
+                href="https://gravatar.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2 text-[11px] text-[#28AEA4] hover:text-[#3cbdb6] transition-colors"
+              >
+                Alterar foto no Gravatar ↗
+              </a>
             </div>
           </div>
         </Card>

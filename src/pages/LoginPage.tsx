@@ -3,6 +3,7 @@ import { Navigate, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { SplashScreen } from '../components/SplashScreen'
 import { AuthErrorBanner } from '../components/AuthErrorBanner'
+import { PasswordInput } from '../components/PasswordInput'
 
 const HIGHLIGHTS = [
   {
@@ -127,13 +128,11 @@ export function LoginPage() {
                 <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
                   Senha
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={setPassword}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
                 />
               </div>
 

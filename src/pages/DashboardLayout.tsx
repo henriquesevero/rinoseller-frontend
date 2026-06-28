@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { UserAvatar } from '../components/UserAvatar'
 
 /* ── Icons ──────────────────────────────────────────────────────────── */
 const IconGrid = () => (
@@ -165,8 +166,6 @@ export function DashboardLayout() {
   const handleLogout = () => { logout(); navigate('/login', { replace: true }) }
   const closeSidebar = () => setSidebarOpen(false)
 
-  const initial = (user?.name ?? 'V').charAt(0).toUpperCase()
-
   return (
     <div className="flex h-screen bg-[#f5f5f7] dark:bg-[#080808] overflow-hidden text-[#1d1d1f] dark:text-white">
 
@@ -232,15 +231,13 @@ export function DashboardLayout() {
           {/* User badge */}
           <div className="mx-1 my-2 px-3 py-2.5 rounded-xl bg-[#f5f5f7] dark:bg-[#141414]">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-[#28AEA4]/15 border border-[#28AEA4]/30 flex items-center justify-center flex-shrink-0">
-                <span className="text-[#28AEA4] font-bold text-xs">{initial}</span>
-              </div>
+              <UserAvatar name={user?.name} email={user?.email} size={28} />
               <div className="min-w-0">
                 <p className="text-[#1d1d1f] dark:text-white text-[12px] font-semibold truncate leading-tight">
-                  {user?.name ?? 'Vendedor'}
+                  {user?.name ?? 'Usuário'}
                 </p>
-                <p className="text-[#8e8e93] dark:text-gray-600 text-[10px] capitalize">
-                  {user?.role === 'admin' ? 'Admin' : 'Vendedor'}
+                <p className="text-[#8e8e93] dark:text-gray-600 text-[10px] truncate">
+                  {user?.email}
                 </p>
               </div>
             </div>
