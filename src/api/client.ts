@@ -39,6 +39,9 @@ export const createUser = (data: { name: string; email: string; password: string
 export const updateUser = (id: string, data: { name: string; email: string; active: boolean }) =>
   request<AuthUser>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 
+export const deleteMyAccount = () =>
+  request<{ message: string }>('/auth/me', { method: 'DELETE' })
+
 // ── Products ──────────────────────────────────────────────────────────────────
 
 export const getProducts = () =>

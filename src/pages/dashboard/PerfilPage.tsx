@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { UserAvatar } from '../../components/UserAvatar'
+import { deleteMyAccount } from '../../api/client'
 
 const PLAN_FEATURES: Record<string, string[]> = {
   basic:        ['Até 10 clientes', 'Até 15 pedidos/mês', 'Controle de estoque', 'Relatórios básicos'],
@@ -54,7 +56,8 @@ function InputField({ label, value, onChange, type = 'text', placeholder = '', d
 }
 
 export default function PerfilPage() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   const [name,        setName]        = useState(user?.name ?? '')
   const [email,       setEmail]       = useState(user?.email ?? '')
@@ -64,6 +67,25 @@ export default function PerfilPage() {
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
   const [passError,   setPassError]   = useState('')
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTyped,       setDeleteTyped]       = useState('')
+  const [deleting,          setDeleting]          = useState(false)
+  const [deleteError,       setDeleteError]       = useState('')
+
+  async function handleDeleteAccount() {
+    if (deleteTyped.trim().toLowerCase() !== (user?.email ?? '').toLowerCase()) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteMyAccount()
+      logout()
+      navigate('/', { replace: true })
+    } catch {
+      setDeleteError('Não foi possível excluir sua conta agora. Tente novamente.')
+      setDeleting(false)
+    }
+  }
 
   const currentPlan = 'professional'
   const planLabel   = { basic: 'Básico', professional: 'Profissional', ai: 'IA' }[currentPlan]
@@ -258,15 +280,52 @@ export default function PerfilPage() {
       <div className="border-t border-[#1e1e1e]" />
       <Section title="Zona de perigo" desc="Ações irreversíveis na sua conta.">
         <Card className="border-red-900/30">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-white">Excluir conta</p>
-              <p className="text-xs text-gray-500 mt-0.5">Remove permanentemente sua conta e todos os dados.</p>
+          {!showDeleteConfirm ? (
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Excluir conta</p>
+                <p className="text-xs text-gray-500 mt-0.5">Remove permanentemente sua conta e todos os dados.</p>
+              </div>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex-shrink-0 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-900/40 hover:border-red-800/60 px-4 py-2 rounded-xl transition-all"
+              >
+                Excluir conta
+              </button>
             </div>
-            <button className="flex-shrink-0 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-900/40 hover:border-red-800/60 px-4 py-2 rounded-xl transition-all">
-              Excluir conta
-            </button>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-red-400">Tem certeza? Essa ação não pode ser desfeita.</p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Todos os seus produtos, clientes, pedidos, orçamentos e catálogos serão excluídos permanentemente.
+                Para confirmar, digite seu e-mail <span className="text-gray-300">{user?.email}</span> abaixo.
+              </p>
+              <input
+                type="email"
+                value={deleteTyped}
+                onChange={e => setDeleteTyped(e.target.value)}
+                placeholder={user?.email}
+                className="w-full bg-[#1a1a1a] border border-red-900/40 focus:border-red-700 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
+              />
+              {deleteError && <p className="text-red-400 text-xs">{deleteError}</p>}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteTyped.trim().toLowerCase() !== (user?.email ?? '').toLowerCase()}
+                  className="text-xs font-bold bg-red-500/10 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-red-400 border border-red-900/40 hover:border-red-800/60 px-4 py-2.5 rounded-xl transition-all"
+                >
+                  {deleting ? 'Excluindo...' : 'Excluir definitivamente'}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteTyped(''); setDeleteError('') }}
+                  disabled={deleting}
+                  className="text-xs font-semibold text-gray-500 hover:text-gray-300 px-4 py-2.5 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       </Section>
 
