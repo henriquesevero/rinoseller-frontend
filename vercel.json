@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://rinoseller-api-production.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/c/:id",
+      "destination": "https://rinoseller-api-production.up.railway.app/c/:id"
     }
   ]
 }

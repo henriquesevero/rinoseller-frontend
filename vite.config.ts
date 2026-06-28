@@ -48,6 +48,10 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/c': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })
