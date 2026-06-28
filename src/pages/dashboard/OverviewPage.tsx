@@ -374,7 +374,6 @@ export function OverviewPage() {
   const [openRanking, setOpenRanking]        = useState<{ title: string; rows: ClientRankRow[] } | null>(null)
   const [clientTab, setClientTab]            = useState<'compradores' | 'dividas' | 'pedidos'>('compradores')
   const [productTab, setProductTab]          = useState<'mais' | 'menos'>('mais')
-  const [brandTab, setBrandTab]              = useState<'mais' | 'menos'>('mais')
 
   useEffect(() => {
     Promise.all([getQuotes(), getClients(), getProducts(), getAllPayments()])
@@ -431,16 +430,6 @@ export function OverviewPage() {
   const productRank    = [...productSales.entries()].map(([id, v]) => ({ id, name: v.name, qty: v.qty }))
   const topProducts    = [...productRank].sort((a, b) => b.qty - a.qty).slice(0, 5)
   const bottomProducts = [...productRank].filter(p => p.qty > 0).sort((a, b) => a.qty - b.qty).slice(0, 5)
-
-  const brandSales = new Map<string, number>()
-  productSales.forEach((v, productId) => {
-    const brand = products.find(p => p.id === productId)?.brand?.trim()
-    if (!brand) return
-    brandSales.set(brand, (brandSales.get(brand) ?? 0) + v.qty)
-  })
-  const brandRank    = [...brandSales.entries()].map(([name, qty]) => ({ name, qty }))
-  const topBrands     = [...brandRank].sort((a, b) => b.qty - a.qty).slice(0, 5)
-  const bottomBrands  = [...brandRank].filter(b => b.qty > 0).sort((a, b) => a.qty - b.qty).slice(0, 5)
 
   return (
     <div className="min-h-full">
@@ -520,11 +509,49 @@ export function OverviewPage() {
               </div>
             </div>
 
-            {/* ── Ranking de clientes + Estoque ── */}
-            <div className="flex flex-wrap gap-4 items-start">
+            {/* ── Rankings ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-              {/* Ranking */}
-              <div className="flex-1 min-w-[260px] max-w-sm">
+              {/* Estoque Crítico */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-white">Estoque Crítico</h2>
+                  <Link to="/dashboard/produtos" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Gerenciar →</Link>
+                </div>
+                <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+                  {lowStock.length === 0 ? (
+                    <p className="text-gray-700 text-xs text-center py-8">Estoque em dia</p>
+                  ) : (
+                    <div className="px-4 py-2 space-y-1">
+                      {[...lowStock]
+                        .sort((a, b) => a.stock_quantity - b.stock_quantity)
+                        .slice(0, 7)
+                        .map(p => (
+                          <div key={p.id} className="flex items-center gap-2.5 py-2">
+                            <div className="min-w-0">
+                              <p className="text-sm text-gray-200 truncate leading-snug">{p.name}</p>
+                              <p className="text-xs font-semibold tabular-nums mt-0.5">
+                                {p.stock_quantity === 0
+                                  ? <span className="text-red-400">Zerado</span>
+                                  : <span className="text-amber-400">{p.stock_quantity} un. restantes</span>
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                  <div className="border-t border-[#1e1e1e] px-4 py-2.5">
+                    <Link to="/dashboard/produtos" className="block w-full text-xs text-gray-600 hover:text-[#28AEA4] transition-colors text-center">
+                      Ajustar estoque →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ranking de Clientes */}
+              <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-white">Ranking de Clientes</h2>
                   <Link to="/dashboard/clientes" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Ver todos →</Link>
@@ -604,53 +631,11 @@ export function OverviewPage() {
                     Ver ranking completo →
                   </button>
                 </div>
-              </div>
-            </div>
-
-              {/* Estoque Crítico */}
-              <div className="flex-1 min-w-[260px] max-w-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-white">Estoque Crítico</h2>
-                  <Link to="/dashboard/produtos" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Gerenciar →</Link>
-                </div>
-                <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
-                  {lowStock.length === 0 ? (
-                    <p className="text-gray-700 text-xs text-center py-8">Estoque em dia</p>
-                  ) : (
-                    <div className="px-4 py-2 space-y-1">
-                      {[...lowStock]
-                        .sort((a, b) => a.stock_quantity - b.stock_quantity)
-                        .slice(0, 7)
-                        .map(p => (
-                          <div key={p.id} className="flex items-center gap-2.5 py-2">
-                            <div className="min-w-0">
-                              <p className="text-sm text-gray-200 truncate leading-snug">{p.name}</p>
-                              <p className="text-xs font-semibold tabular-nums mt-0.5">
-                                {p.stock_quantity === 0
-                                  ? <span className="text-red-400">Zerado</span>
-                                  : <span className="text-amber-400">{p.stock_quantity} un. restantes</span>
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  )}
-                  <div className="border-t border-[#1e1e1e] px-4 py-2.5">
-                    <Link to="/dashboard/produtos" className="block w-full text-xs text-gray-600 hover:text-[#28AEA4] transition-colors text-center">
-                      Ajustar estoque →
-                    </Link>
-                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* ── Ranking de produtos + marcas ── */}
-            <div className="flex flex-wrap gap-4 items-start">
-
-              {/* Ranking de produtos */}
-              <div className="flex-1 min-w-[260px] max-w-sm">
+              {/* Ranking de Produtos */}
+              <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold text-white">Ranking de Produtos</h2>
                   <Link to="/dashboard/produtos" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Ver todos →</Link>
@@ -690,46 +675,6 @@ export function OverviewPage() {
                 </div>
               </div>
 
-              {/* Ranking de marcas */}
-              <div className="flex-1 min-w-[260px] max-w-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-white">Ranking de Marcas</h2>
-                  <Link to="/dashboard/produtos" className="text-xs text-[#28AEA4]/70 hover:text-[#28AEA4]">Ver todos →</Link>
-                </div>
-                <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
-                  <div className="flex border-b border-[#1e1e1e]">
-                    {([
-                      { key: 'mais' as const, label: 'Mais vendidas', color: 'text-[#28AEA4]' },
-                      { key: 'menos' as const, label: 'Menos vendidas', color: 'text-amber-400' },
-                    ]).map(t => (
-                      <button key={t.key} onClick={() => setBrandTab(t.key)}
-                        className={`flex-1 py-3 text-xs font-medium transition-colors border-b-2 ${
-                          brandTab === t.key
-                            ? `${t.color} border-current`
-                            : 'text-gray-600 border-transparent hover:text-gray-400'
-                        }`}>
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="px-4 py-2 space-y-1">
-                    {(brandTab === 'mais' ? topBrands : bottomBrands).length === 0 ? (
-                      <p className="text-gray-700 text-xs text-center py-4">Sem dados suficientes</p>
-                    ) : (brandTab === 'mais' ? topBrands : bottomBrands).map((b, i) => (
-                      <div key={b.name} className="flex items-center gap-2.5 py-2">
-                        <span className="text-[11px] text-gray-600 w-5 shrink-0 tabular-nums">{i + 1}º</span>
-                        <div className="min-w-0">
-                          <p className="text-sm text-gray-200 truncate leading-snug">{b.name}</p>
-                          <p className={`text-xs font-semibold tabular-nums mt-0.5 ${brandTab === 'mais' ? 'text-[#28AEA4]' : 'text-amber-400'}`}>
-                            {b.qty} un. vendida{b.qty !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </>
         )}
