@@ -125,6 +125,7 @@ const PLANS = [
     period: 'por mês',
     desc: 'Para vendedores em crescimento.',
     highlight: true,
+    trialNote: '3 dias grátis para testar, sem cartão',
     items: [
       { label: 'Clientes ilimitados',      enabled: true },
       { label: 'Pedidos ilimitados',       enabled: true },
@@ -159,7 +160,7 @@ const PLANS = [
 const FAQS = [
   {
     q: 'Preciso de cartão de crédito para começar?',
-    a: 'Não. O plano Básico é gratuito para sempre, sem necessidade de cartão. Você só informa dados de pagamento ao assinar um plano pago.',
+    a: 'Não. Você pode testar o RinoSeller gratuitamente por 3 dias, sem informar cartão. Os dados de pagamento só são pedidos quando você decide assinar um plano.',
   },
   {
     q: 'Posso mudar de plano depois?',
@@ -508,6 +509,14 @@ export function LandingPage() {
                   </div>
                   {p.period === 'para sempre' && <span className={`text-xs ${p.highlight ? 'text-gray-400' : 'text-gray-500'}`}>{p.period}</span>}
                   <p className="text-sm mt-2 text-gray-500">{p.desc}</p>
+                  {p.trialNote && (
+                    <div className="inline-flex items-center gap-1.5 mt-3 bg-[#28AEA4]/10 border border-[#28AEA4]/25 rounded-full px-3 py-1">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#28AEA4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span className="text-[11px] font-bold text-[#28AEA4]">{p.trialNote}</span>
+                    </div>
+                  )}
                 </div>
 
                 <ul className="space-y-2.5 mb-8 flex-1">
