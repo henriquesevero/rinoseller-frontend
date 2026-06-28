@@ -51,7 +51,7 @@ export function PlanPicker({ value, onChange, includeTrial = true }: PlanPickerP
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-white">{p.name}</p>
+                  <p className={`text-sm font-bold ${selected ? 'text-[#28AEA4]' : 'text-white'}`}>{p.name}</p>
                   {p.highlight && (
                     <span className="text-[9px] font-bold uppercase tracking-wider bg-[#28AEA4] text-white px-1.5 py-0.5 rounded">
                       Popular
@@ -61,7 +61,7 @@ export function PlanPicker({ value, onChange, includeTrial = true }: PlanPickerP
                 <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{p.desc}</p>
               </div>
               <div className="flex-shrink-0 text-right">
-                <p className="text-sm font-extrabold text-white whitespace-nowrap">
+                <p className={`text-sm font-extrabold whitespace-nowrap ${selected ? 'text-[#28AEA4]' : 'text-white'}`}>
                   {p.price}<span className="text-xs font-normal text-gray-500">{p.period}</span>
                 </p>
               </div>
