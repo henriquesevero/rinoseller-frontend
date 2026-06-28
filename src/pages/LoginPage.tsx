@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { SplashScreen } from '../components/SplashScreen'
 
 const HIGHLIGHTS = [
   {
@@ -20,12 +21,14 @@ const HIGHLIGHTS = [
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
+  const [error,      setError]      = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [showSplash, setShowSplash] = useState(false)
+  const [fadingOut,  setFadingOut]  = useState(false)
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  if (isAuthenticated && !showSplash) return <Navigate to="/dashboard" replace />
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -33,12 +36,16 @@ export function LoginPage() {
     setError('')
     const result = await login(email.trim(), password)
     if (result.ok) {
-      navigate('/dashboard', { replace: true })
+      setShowSplash(true)
+      setTimeout(() => setFadingOut(true), 900)
+      setTimeout(() => navigate('/dashboard', { replace: true }), 1200)
     } else {
       setError(result.error ?? 'Usuário ou senha incorretos.')
       setLoading(false)
     }
   }
+
+  if (showSplash) return <SplashScreen fadingOut={fadingOut} />
 
   return (
     <div className="min-h-screen flex">
