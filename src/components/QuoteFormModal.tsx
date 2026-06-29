@@ -264,19 +264,28 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                 />
                 {prodOpen && prodSearch.trim().length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-hidden z-10 shadow-xl">
-                    {filteredProducts.map(p => {
-                      const outOfStock = !p.is_kit && p.stock_quantity === 0
-                      return (
-                        <button key={p.id} onMouseDown={() => selectProduct(p)}
-                          className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left ${outOfStock ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : 'hover:bg-[#272727]'}`}>
-                          <span className="text-gray-200 flex items-center gap-2">
-                            {p.name}
-                            {outOfStock && <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">Sem estoque</span>}
-                          </span>
-                          <span className="text-[#28AEA4] ml-4 flex-shrink-0">{fmt(p.price)}</span>
-                        </button>
-                      )
-                    })}
+                    {filteredProducts.length > 0 && (
+                      <div className="max-h-64 overflow-y-auto">
+                        {filteredProducts.slice(0, 8).map(p => {
+                          const outOfStock = !p.is_kit && p.stock_quantity === 0
+                          return (
+                            <button key={p.id} onMouseDown={() => selectProduct(p)}
+                              className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left ${outOfStock ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : 'hover:bg-[#272727]'}`}>
+                              <span className="text-gray-200 flex items-center gap-2">
+                                {p.name}
+                                {outOfStock && <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">Sem estoque</span>}
+                              </span>
+                              <span className="text-[#28AEA4] ml-4 flex-shrink-0">{fmt(p.price)}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {filteredProducts.length > 8 && (
+                      <p className="px-4 py-2 text-[11px] text-gray-600 border-t border-[#272727]">
+                        mostrando 8 de {filteredProducts.length} resultados — refine a busca
+                      </p>
+                    )}
                     <button
                       onMouseDown={openNewProd}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#28AEA4]/80 hover:bg-[#272727] transition-colors border-t border-[#272727]"
