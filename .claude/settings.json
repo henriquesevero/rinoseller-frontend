@@ -20,7 +20,13 @@
       "Bash(sed 's/height: 400/height: 1400/; s/dyn3.png/dyn4.png/' debug_dyn3.mjs)",
       "Bash(node debug_dyn4.mjs)",
       "Bash(sed \"s/Arial,sans-serif; }/Arial,sans-serif; background:#fff; }/; s/dyn3.png/dyn5.png/\" debug_dyn3.mjs)",
-      "Bash(node debug_dyn5.mjs)"
+      "Bash(node debug_dyn5.mjs)",
+      "Bash(sips -c 80 350 -o crop1.png tabelas-page.png --cropOffset 244 145)",
+      "Bash(sips -z 375 978 -c 375 978 tabelas-page.png --out crop3_full.png)",
+      "Bash(sips --cropToHeightWidth 125 326 --cropOffset 135 244 tabelas-page.png --out crop3.png)",
+      "Bash(sips -z 375 978 crop3.png --out crop3_zoom.png)",
+      "Bash(curl -s \"http://localhost:5173/src/index.css\")",
+      "Bash(node inspect_card.mjs)"
     ]
   }
 }

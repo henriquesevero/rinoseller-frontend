@@ -265,7 +265,7 @@ function BrandCard({ brand, highlight, downloading, onDownload, onSend }: {
   return (
     <div className={`rounded-2xl border p-5 flex flex-col ${highlight ? 'bg-[#28AEA4]/[0.06] border-[#28AEA4]/25' : 'bg-[#111111] border-[#1e1e1e]'}`}>
       <div className="flex items-start justify-between gap-3 mb-1">
-        <p className="text-white font-semibold text-sm truncate">{brand.name}</p>
+        <p className={`font-semibold text-sm truncate ${highlight ? 'text-[#0f4f49] dark:text-[#ffffff]' : 'text-white'}`}>{brand.name}</p>
         <span className="flex-shrink-0 text-[10px] font-bold bg-[#28AEA4]/10 text-[#28AEA4] border border-[#28AEA4]/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
           {brand.products.length} {brand.products.length === 1 ? 'item' : 'itens'}
         </span>

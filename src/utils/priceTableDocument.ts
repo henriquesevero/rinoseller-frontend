@@ -13,20 +13,19 @@ const DOC_CSS = `
 * { margin:0; padding:0; box-sizing:border-box; }
 body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
 .wrap { background:#fff; }
-.hero { background:linear-gradient(135deg,#0f172a 0%,#0c2625 60%,#0f4f49 100%); padding:36px 56px 26px; position:relative; overflow:hidden; }
+.hero { background:linear-gradient(135deg,#0f172a 0%,#0c2625 60%,#0f4f49 100%); padding:24px 56px 18px; position:relative; overflow:hidden; }
 .hero::after { content:''; position:absolute; top:-60px; right:-60px; width:220px; height:220px; border-radius:50%; background:rgba(40,174,164,0.18); }
 .hero-eyebrow { color:#6edbd5; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.2em; }
 .hero-brand { color:#ffffff; font-size:25px; font-weight:800; letter-spacing:-.01em; margin-top:7px; line-height:1.15; }
 .hero-sub { color:#94a3b8; font-size:10px; margin-top:6px; }
-.hero-count { display:inline-block; margin-top:12px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); color:#e2e8f0; font-size:10px; font-weight:600; padding:5px 12px; border-radius:99px; }
-.body { padding:18px 56px 4px; }
+.body { padding:14px 56px 4px; }
 table { width:100%; border-collapse:collapse; }
-thead th { color:#94a3b8; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; padding:0 0 7px; text-align:left; border-bottom:2px solid #0f4f49; }
+thead th { color:#94a3b8; font-size:7.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:0 0 4px; text-align:left; border-bottom:2px solid #0f4f49; }
 th.r,td.r { text-align:right; }
-tbody td { padding:6.5px 0; font-size:11px; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+tbody td { padding:3px 0; font-size:8.5px; color:#0f172a; border-bottom:1px solid #f1f5f9; }
 tbody tr:last-child td { border-bottom:none; }
 .prod-name { font-weight:600; }
-.prod-price { font-weight:800; color:#0f766e; font-size:11.5px; font-variant-numeric:tabular-nums; }
+.prod-price { font-weight:800; color:#0f766e; font-size:8.5px; font-variant-numeric:tabular-nums; }
 .footer { margin:14px 56px 0; padding:12px 0 20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
 .footer-brand { font-size:12px; font-weight:800; color:#0f172a; }
 .footer-note { font-size:9px; color:#94a3b8; margin-top:2px; }
@@ -51,8 +50,7 @@ function buildBodyContent(products: Product[], brandLabel: string): string {
     <div class="hero">
       <div class="hero-eyebrow">Tabela de Preços</div>
       <div class="hero-brand">${brandLabel}</div>
-      <div class="hero-sub">Atualizada em ${dateLabel} · valores finais, prontos para venda</div>
-      <div class="hero-count">${sorted.length} ${sorted.length === 1 ? 'produto' : 'produtos'}</div>
+      <div class="hero-sub">Atualizada em ${dateLabel}</div>
     </div>
     <div class="body">
       <table>
