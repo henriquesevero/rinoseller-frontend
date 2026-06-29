@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -w '\\\\n%{http_code}\\\\n' -X POST http://localhost:8080/api/clients/__TRACKED_VAR__/send-document-email -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"subject\":\"Teste — Tabela de Preços\",\"message\":\"Este é um teste do envio de tabela de preços por e-mail.\",\"filename\":\"teste-tabela.pdf\",\"pdf_base64\":\"__TRACKED_VAR__\"}')",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
