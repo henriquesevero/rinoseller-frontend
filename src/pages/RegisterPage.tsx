@@ -33,10 +33,11 @@ const PLAN_LABELS: Record<'base' | 'professional', { label: string; price: strin
 
 export function RegisterPage() {
   const { isAuthenticated } = useAuth()
-  const [name,      setName]      = useState('')
-  const [email,     setEmail]     = useState('')
-  const [password,  setPassword]  = useState('')
-  const [confirm,   setConfirm]   = useState('')
+  const [name,       setName]       = useState('')
+  const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
+  const [confirm,    setConfirm]    = useState('')
+  const [accessCode, setAccessCode] = useState('')
   const [error,     setError]     = useState('')
   const [errorCode, setErrorCode] = useState<string | undefined>(undefined)
   const [loading,   setLoading]   = useState(false)
@@ -63,7 +64,7 @@ export function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, plan }),
+        body: JSON.stringify({ name, email, password, plan, access_code: accessCode }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro ao criar conta.'); setErrorCode(data.code); setLoading(false); return }
@@ -201,12 +202,26 @@ export function RegisterPage() {
                     autoComplete="new-password"
                   />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
+                    Código de acesso
+                  </label>
+                  <input
+                    type="text"
+                    value={accessCode}
+                    onChange={e => setAccessCode(e.target.value)}
+                    placeholder="fornecido por quem te convidou"
+                    autoComplete="off"
+                    className="w-full bg-[#171717] border border-[#2a2a2a] focus:border-[#28AEA4] text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder-gray-700"
+                  />
+                  <p className="text-[10px] text-gray-600 mt-1.5">Estamos em fase de testes — o cadastro é só por convite.</p>
+                </div>
 
                 {error && <AuthErrorBanner code={errorCode} message={error} email={email.trim()} />}
 
                 <button
                   type="submit"
-                  disabled={!name || !email || !password || !confirm}
+                  disabled={!name || !email || !password || !confirm || !accessCode}
                   className="w-full bg-[#28AEA4] hover:bg-[#3cbdb6] active:bg-[#1d9992] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold py-3.5 rounded-xl transition-all text-sm tracking-[0.15em] uppercase mt-2"
                 >
                   Continuar
