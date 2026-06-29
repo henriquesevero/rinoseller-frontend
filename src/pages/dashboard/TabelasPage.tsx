@@ -7,10 +7,6 @@ import {
   sharePriceTableWhatsAppToMany,
 } from '../../utils/priceTableDocument'
 
-function fmt(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
 interface BrandGroup {
   name: string
   products: Product[]
@@ -258,19 +254,14 @@ function BrandCard({ brand, highlight, downloading, onDownload, onSend }: {
   onDownload: () => void
   onSend: () => void
 }) {
-  const avgPrice = brand.products.length > 0
-    ? brand.products.reduce((s, p) => s + p.price, 0) / brand.products.length
-    : 0
-
   return (
     <div className={`rounded-2xl border p-5 flex flex-col ${highlight ? 'bg-[#28AEA4]/[0.06] border-[#28AEA4]/25' : 'bg-[#111111] border-[#1e1e1e]'}`}>
-      <div className="flex items-start justify-between gap-3 mb-1">
+      <div className="flex items-start justify-between gap-3 mb-4">
         <p className={`font-semibold text-sm truncate ${highlight ? 'text-[#0f4f49] dark:text-[#ffffff]' : 'text-white'}`}>{brand.name}</p>
         <span className="flex-shrink-0 text-[10px] font-bold bg-[#28AEA4]/10 text-[#28AEA4] border border-[#28AEA4]/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
           {brand.products.length} {brand.products.length === 1 ? 'item' : 'itens'}
         </span>
       </div>
-      <p className="text-gray-600 text-xs mb-4">Preço médio {fmt(avgPrice)}</p>
 
       <div className="flex gap-2 mt-auto">
         <button
