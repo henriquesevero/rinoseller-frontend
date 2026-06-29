@@ -11,7 +11,7 @@ function fmt(v: number) {
 
 const DOC_CSS = `
 * { margin:0; padding:0; box-sizing:border-box; }
-body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:#fff; }
+body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
 .wrap { background:#fff; }
 .hero { background:linear-gradient(135deg,#0f172a 0%,#0c2625 60%,#0f4f49 100%); padding:36px 56px 26px; position:relative; overflow:hidden; }
 .hero::after { content:''; position:absolute; top:-60px; right:-60px; width:220px; height:220px; border-radius:50%; background:rgba(40,174,164,0.18); }
