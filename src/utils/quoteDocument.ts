@@ -21,7 +21,7 @@ function findClient(quote: Quote, clients: Client[]) {
 const DOC_CSS = `
 * { margin:0; padding:0; box-sizing:border-box; }
 body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#0f172a; background:#fff; }
-.wrap { padding:36px 44px; width:794px; background:#fff; }
+.wrap { padding:36px 44px; background:#fff; }
 .top-bar { height:3px; background:#28AEA4; margin:-36px -44px 32px; }
 .header { display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:20px; border-bottom:1px solid #e2e8f0; margin-bottom:24px; }
 .brand-name { font-size:18px; font-weight:800; letter-spacing:.03em; color:#0f172a; }
@@ -275,22 +275,8 @@ export async function shareQuoteOnWhatsApp(quote: Quote, clients: Client[], kind
   const docNoun  = kind === 'pedido' ? 'pedido' : 'orçamento'
   const fileName = `${kind}-${pad(quote.id)}.pdf`
 
-  const greeting = client?.name ? `Olá, *${client.name}*! 👋` : 'Olá! 👋'
-  const message  = [
-    greeting,
-    '',
-    `Segue em anexo o ${docNoun} *${docCode}* da RinoSeller.`,
-    '',
-    `📦 *${quote.items.length} ${quote.items.length === 1 ? 'item' : 'itens'}*`,
-    ...quote.items.map(i => `  • ${i.product_name} (${i.quantity}x) — ${fmt(i.subtotal)}`),
-    '',
-    `💰 *Total: ${fmt(quote.total)}*`,
-    ...(quote.notes ? ['', `_Obs: ${quote.notes}_`] : []),
-    '',
-    'Qualquer dúvida estamos à disposição! 😊',
-    '',
-    '*RinoSeller*',
-  ].join('\n')
+  const greeting = client?.name ? `Olá, ${client.name}!` : 'Olá!'
+  const message  = `${greeting} Segue o seu ${docNoun}.`
 
   let pdfBlob: Blob
   try {

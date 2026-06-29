@@ -132,7 +132,7 @@ function SendCatalogModal({ catalog, clients, onClose }: SendCatalogModalProps) 
               {selected.map(c => (
                 <span
                   key={c.id}
-                  className="inline-flex items-center gap-1.5 bg-[#28AEA4]/10 border border-[#28AEA4]/30 text-[#6edbd5] text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full"
+                  className="inline-flex items-center gap-1.5 bg-[#28AEA4]/10 border border-[#28AEA4]/30 text-[#1d9992] dark:text-[#6edbd5] text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full"
                 >
                   {c.name}
                   <button

@@ -2,7 +2,23 @@
   "permissions": {
     "allow": [
       "Bash(curl -s -w '\\\\n%{http_code}\\\\n' -X POST http://localhost:8080/api/clients/__TRACKED_VAR__/send-document-email -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"subject\":\"Teste — Tabela de Preços\",\"message\":\"Este é um teste do envio de tabela de preços por e-mail.\",\"filename\":\"teste-tabela.pdf\",\"pdf_base64\":\"__TRACKED_VAR__\"}')",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s -o /dev/null -w \"backend: %{http_code}\\\\n\" http://localhost:8080/health)",
+      "Bash(node /private/tmp/claude-501/-Users-henrique-Documents-rinoseller-frontend/1b0b6d8e-b173-4d40-994f-2774e4d1cef1/scratchpad/gen_pdf_test.mjs)",
+      "Bash(node gen_pdf_test.mjs)",
+      "Bash(pip install *)",
+      "Bash(pdftoppm -png -r 100 tabela-teste.pdf page)",
+      "Bash(node -e ' *)",
+      "Bash(sed 's/· valores finais, prontos para venda/e valores finais, prontos para venda/' debug_hero3.html)",
+      "Bash(sed 's/font-weight:800; margin-top:7px;/font-weight:800; letter-spacing:-.01em; margin-top:7px; line-height:1.15;/' debug_hero9.html)",
+      "Bash(rm -f tabela-teste.pdf page-1.png page-2.png)",
+      "Bash(node debug_exact2.mjs)",
+      "Bash(cp exact-screenshot2.png /dev/null)",
+      "Bash(sed \"s/font-family:Arial,sans-serif;/font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;/\" debug_dyn2.mjs)",
+      "Bash(sed -i '' \"s/dyn2.png/dyn3.png/\" debug_dyn3.mjs)",
+      "Bash(node debug_dyn3.mjs)",
+      "Bash(sed 's/height: 400/height: 1400/; s/dyn3.png/dyn4.png/' debug_dyn3.mjs)",
+      "Bash(node debug_dyn4.mjs)"
     ]
   }
 }

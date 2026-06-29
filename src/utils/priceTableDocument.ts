@@ -12,25 +12,25 @@ function fmt(v: number) {
 const DOC_CSS = `
 * { margin:0; padding:0; box-sizing:border-box; }
 body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; background:#fff; }
-.wrap { width:794px; background:#fff; }
-.hero { background:linear-gradient(135deg,#0f172a 0%,#0c2625 60%,#0f4f49 100%); padding:56px 56px 44px; position:relative; overflow:hidden; }
+.wrap { background:#fff; }
+.hero { background:linear-gradient(135deg,#0f172a 0%,#0c2625 60%,#0f4f49 100%); padding:36px 56px 26px; position:relative; overflow:hidden; }
 .hero::after { content:''; position:absolute; top:-60px; right:-60px; width:220px; height:220px; border-radius:50%; background:rgba(40,174,164,0.18); }
-.hero-eyebrow { color:#6edbd5; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.22em; }
-.hero-brand { color:#ffffff; font-size:34px; font-weight:800; letter-spacing:-.01em; margin-top:10px; line-height:1.15; }
-.hero-sub { color:#94a3b8; font-size:12px; margin-top:10px; }
-.hero-count { display:inline-block; margin-top:18px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); color:#e2e8f0; font-size:11px; font-weight:600; padding:6px 14px; border-radius:99px; }
-.body { padding:36px 56px 12px; }
+.hero-eyebrow { color:#6edbd5; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.2em; }
+.hero-brand { color:#ffffff; font-size:25px; font-weight:800; letter-spacing:-.01em; margin-top:7px; line-height:1.15; }
+.hero-sub { color:#94a3b8; font-size:10px; margin-top:6px; }
+.hero-count { display:inline-block; margin-top:12px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); color:#e2e8f0; font-size:10px; font-weight:600; padding:5px 12px; border-radius:99px; }
+.body { padding:18px 56px 4px; }
 table { width:100%; border-collapse:collapse; }
-thead th { color:#94a3b8; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.14em; padding:0 0 10px; text-align:left; border-bottom:2px solid #0f4f49; }
+thead th { color:#94a3b8; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; padding:0 0 7px; text-align:left; border-bottom:2px solid #0f4f49; }
 th.r,td.r { text-align:right; }
-tbody td { padding:13px 0; font-size:13px; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+tbody td { padding:6.5px 0; font-size:11px; color:#0f172a; border-bottom:1px solid #f1f5f9; }
 tbody tr:last-child td { border-bottom:none; }
 .prod-name { font-weight:600; }
-.prod-price { font-weight:800; color:#0f766e; font-size:14px; font-variant-numeric:tabular-nums; }
-.footer { margin:28px 56px 0; padding:22px 0 32px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
-.footer-brand { font-size:13px; font-weight:800; color:#0f172a; }
-.footer-note { font-size:10px; color:#94a3b8; margin-top:2px; }
-.footer-tag { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:#28AEA4; }
+.prod-price { font-weight:800; color:#0f766e; font-size:11.5px; font-variant-numeric:tabular-nums; }
+.footer { margin:14px 56px 0; padding:12px 0 20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
+.footer-brand { font-size:12px; font-weight:800; color:#0f172a; }
+.footer-note { font-size:9px; color:#94a3b8; margin-top:2px; }
+.footer-tag { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#28AEA4; }
 `
 
 // ── Conteúdo ──────────────────────────────────────────────────────────────────
@@ -73,10 +73,16 @@ function buildBodyContent(products: Product[], brandLabel: string): string {
 }
 
 // ── Gera PDF como Blob ────────────────────────────────────────────────────────
+// Pagina cortando apenas entre linhas da tabela (nunca no meio de uma linha ou
+// do cabeçalho), capturando cada página separadamente em vez de fatiar uma
+// única imagem por altura fixa.
+
+const CONTAINER_WIDTH = 794
+const A4_RATIO = 297 / 210 // altura/largura — mesma proporção em px
 
 async function generatePDFBlob(products: Product[], brandLabel: string): Promise<Blob> {
   const container = document.createElement('div')
-  container.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff;pointer-events:none;'
+  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${CONTAINER_WIDTH}px;background:#fff;pointer-events:none;`
 
   const styleEl = document.createElement('style')
   styleEl.textContent = DOC_CSS
@@ -89,31 +95,48 @@ async function generatePDFBlob(products: Product[], brandLabel: string): Promise
   document.body.appendChild(container)
 
   try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      scrollX: 0,
-      scrollY: 0,
-    })
+    const pageHeightPx = CONTAINER_WIDTH * A4_RATIO
+    const totalHeight  = container.scrollHeight
+    const containerTop = container.getBoundingClientRect().top
 
-    const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
-    const pgW     = pdf.internal.pageSize.getWidth()
-    const pgH     = pdf.internal.pageSize.getHeight()
-    const imgW    = pgW
-    const imgH    = (canvas.height * pgW) / canvas.width
-    const imgData = canvas.toDataURL('image/jpeg', 0.9)
+    // Pontos seguros para cortar: o topo de cada linha da tabela, e o fim do documento.
+    const rowTops = Array.from(container.querySelectorAll('tbody tr'))
+      .map(tr => tr.getBoundingClientRect().top - containerTop)
+      .filter(y => y > 0)
+    const safeBreaks = [...rowTops, totalHeight]
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH)
+    const slices: { top: number; height: number }[] = []
+    let cursor = 0
+    while (cursor < totalHeight - 1) {
+      const limit = cursor + pageHeightPx
+      const candidates = safeBreaks.filter(y => y > cursor && y <= limit)
+      const end = candidates.length > 0 ? Math.max(...candidates) : Math.min(limit, totalHeight)
+      slices.push({ top: cursor, height: end - cursor })
+      cursor = end
+    }
 
-    let remaining = imgH - pgH
-    let offset    = -pgH
-    while (remaining > 0) {
-      pdf.addPage()
-      pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH)
-      offset    -= pgH
-      remaining -= pgH
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
+    const pgW = pdf.internal.pageSize.getWidth()
+
+    for (let i = 0; i < slices.length; i++) {
+      const { top, height } = slices[i]
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: top,
+        width: CONTAINER_WIDTH,
+        height,
+      })
+      const imgData = canvas.toDataURL('image/jpeg', 0.9)
+      const imgH = (canvas.height * pgW) / canvas.width
+
+      if (i > 0) pdf.addPage()
+      pdf.addImage(imgData, 'JPEG', 0, 0, pgW, imgH)
     }
 
     return pdf.output('blob')
@@ -183,15 +206,7 @@ export async function sharePriceTableWhatsAppToMany(products: Product[], brandLa
   URL.revokeObjectURL(blobUrl)
 
   recipients.forEach((client, i) => {
-    const message = [
-      `Olá, *${client.name}*! 👋`,
-      '',
-      `Segue nossa tabela de preços atualizada de *${brandLabel}* (arquivo "${fileName}", já baixado — só anexar aqui).`,
-      '',
-      'Qualquer dúvida estamos à disposição! 😊',
-      '',
-      '*RinoSeller*',
-    ].join('\n')
+    const message = `Olá, ${client.name}! Segue a tabela de preços de ${brandLabel} (arquivo já baixado, só anexar aqui).`
     const phone = client.phone?.replace(/\D/g, '') ?? ''
     const waUrl = phone
       ? `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`
