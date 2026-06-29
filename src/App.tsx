@@ -15,6 +15,7 @@ import { OverviewPage } from './pages/dashboard/OverviewPage'
 import { ProdutosPage } from './pages/dashboard/ProdutosPage'
 import { FinanceiroPage } from './pages/dashboard/FinanceiroPage'
 import { CatalogosPage } from './pages/dashboard/CatalogosPage'
+import { TabelasPage } from './pages/dashboard/TabelasPage'
 import { ClientesPage } from './pages/dashboard/ClientesPage'
 import { ClienteDetalhePage } from './pages/dashboard/ClienteDetalhePage'
 import OrcamentosPage from './pages/dashboard/OrcamentosPage'
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="usuarios" element={<UsuariosPage />} />
             <Route path="financeiro" element={<FinanceiroPage />} />
             <Route path="catalogos" element={<CatalogosPage />} />
+            <Route path="tabelas" element={<TabelasPage />} />
             <Route path="perfil" element={<PerfilPage />} />
             <Route path="cobranca" element={<CobrancaPage />} />
           </Route>

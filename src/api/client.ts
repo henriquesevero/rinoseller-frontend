@@ -214,3 +214,8 @@ export interface CheckoutCardData {
 
 export const checkoutSubscription = (data: CheckoutCardData) =>
   request<{ message: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify(data) })
+
+// ── Documentos (envio de PDFs avulsos, ex: tabela de preços) ─────────────────
+
+export const sendDocumentEmail = (clientId: string, data: { subject: string; message: string; filename: string; pdf_base64: string }) =>
+  request<{ message: string }>(`/clients/${clientId}/send-document-email`, { method: 'POST', body: JSON.stringify(data) })
