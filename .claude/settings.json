@@ -18,7 +18,9 @@
       "Bash(sed -i '' \"s/dyn2.png/dyn3.png/\" debug_dyn3.mjs)",
       "Bash(node debug_dyn3.mjs)",
       "Bash(sed 's/height: 400/height: 1400/; s/dyn3.png/dyn4.png/' debug_dyn3.mjs)",
-      "Bash(node debug_dyn4.mjs)"
+      "Bash(node debug_dyn4.mjs)",
+      "Bash(sed \"s/Arial,sans-serif; }/Arial,sans-serif; background:#fff; }/; s/dyn3.png/dyn5.png/\" debug_dyn3.mjs)",
+      "Bash(node debug_dyn5.mjs)"
     ]
   }
 }
