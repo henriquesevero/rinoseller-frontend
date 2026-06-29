@@ -76,11 +76,11 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   if (!open) return null
 
   const filteredClients  = clientSearch.trim().length > 0
-    ? clients.filter(c => c.name.toLowerCase().startsWith(clientSearch.toLowerCase()))
+    ? clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
     : []
 
   const filteredProducts = prodSearch.trim().length > 0
-    ? products.filter(p => p.name.toLowerCase().startsWith(prodSearch.toLowerCase()))
+    ? products.filter(p => p.name.toLowerCase().includes(prodSearch.toLowerCase()))
     : []
 
   // ── Handlers — cliente ────────────────────────────────────────────────────────

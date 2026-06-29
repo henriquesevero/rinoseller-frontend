@@ -51,11 +51,13 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
 
 function invoicedDate(q: Quote) { return new Date(q.invoiced_at ?? q.created_at) }
 
-// Quotes que geram faturamento: Faturado (não-Personalizado) e Entregue/Faturado (legacy)
+// Quotes que geram faturamento direto (receita reconhecida pela venda):
+// - Exclui Personalizado — a receita entra pelos pagamentos do cliente (ClientPayment)
+// - Inclui Entregue, pois ao marcar como entregue um pedido faturado perde o status "Faturado"
 function isFaturadoQuote(q: Quote) {
+  if (q.payment_type === 'Personalizado') return false
   if (q.status === 'Entregue/Faturado') return true
-  if (q.status === 'Faturado' && q.payment_type !== 'Personalizado') return true
-  return false
+  return q.status === 'Faturado' || q.status === 'Entregue'
 }
 
 function chartData(quotes: Quote[], payments: ClientPayment[], period: Period): ChartPoint[] {

@@ -579,12 +579,12 @@ export function ProdutosPage() {
       {/* New product modal */}
       {showNew && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[#0f0f0f] border border-[#222] rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#1c1c1c]">
+          <div className="bg-[#0f0f0f] border border-[#222] rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#1c1c1c] flex-shrink-0">
               <h2 className="text-lg font-bold text-white">Novo Produto</h2>
               <button onClick={() => setShowNew(false)} className="text-gray-600 hover:text-white text-2xl leading-none">×</button>
             </div>
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="field-label">Código</label>
@@ -701,16 +701,16 @@ export function ProdutosPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowNew(false)}
-                  className="flex-1 border border-[#2a2a2a] text-gray-400 rounded-xl py-3 text-sm hover:bg-[#141414] transition-colors">
-                  Cancelar
-                </button>
-                <button onClick={handleCreate} disabled={creating || !newP.name || !newP.price || (isKit && kitItems.length === 0)}
-                  className="flex-1 bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold rounded-xl py-3 text-sm transition-colors">
-                  {creating ? 'Criando...' : 'Criar Produto'}
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-[#1c1c1c] flex-shrink-0">
+              <button onClick={() => setShowNew(false)}
+                className="flex-1 border border-[#2a2a2a] text-gray-400 rounded-xl py-3 text-sm hover:bg-[#141414] transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleCreate} disabled={creating || !newP.name || !newP.price || (isKit && kitItems.length === 0)}
+                className="flex-1 bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold rounded-xl py-3 text-sm transition-colors">
+                {creating ? 'Criando...' : 'Criar Produto'}
+              </button>
             </div>
           </div>
         </div>
