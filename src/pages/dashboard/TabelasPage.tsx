@@ -4,6 +4,7 @@ import type { Product, Client } from '../../types'
 import {
   downloadPriceTablePDF,
   sendPriceTableEmailToMany,
+  sharePriceTableWhatsApp,
   sharePriceTableWhatsAppToMany,
 } from '../../utils/priceTableDocument'
 
@@ -172,6 +173,7 @@ export function TabelasPage() {
   const [loading, setLoading]   = useState(true)
   const [sendingBrand, setSendingBrand] = useState<BrandGroup | null>(null)
   const [downloadingBrand, setDownloadingBrand] = useState<string | null>(null)
+  const [sharingBrand, setSharingBrand] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([getProducts(), getClients()])
@@ -203,6 +205,17 @@ export function TabelasPage() {
     }
   }
 
+  const handleShareWhatsApp = async (brand: BrandGroup) => {
+    setSharingBrand(brand.name)
+    try {
+      await sharePriceTableWhatsApp(brand.products, brand.name)
+    } catch {
+      alert('Não foi possível gerar o PDF.')
+    } finally {
+      setSharingBrand(null)
+    }
+  }
+
   return (
     <div className="min-h-full">
       <div className="px-6 py-7 border-b border-[#1c1c1c]">
@@ -223,7 +236,9 @@ export function TabelasPage() {
               brand={allBrand}
               highlight
               downloading={downloadingBrand === allBrand.name}
+              sharing={sharingBrand === allBrand.name}
               onDownload={() => handleDownload(allBrand)}
+              onShareWhatsApp={() => handleShareWhatsApp(allBrand)}
               onSend={() => setSendingBrand(allBrand)}
             />
 
@@ -232,7 +247,9 @@ export function TabelasPage() {
                 key={brand.name}
                 brand={brand}
                 downloading={downloadingBrand === brand.name}
+                sharing={sharingBrand === brand.name}
                 onDownload={() => handleDownload(brand)}
+                onShareWhatsApp={() => handleShareWhatsApp(brand)}
                 onSend={() => setSendingBrand(brand)}
               />
             ))}
@@ -247,11 +264,13 @@ export function TabelasPage() {
   )
 }
 
-function BrandCard({ brand, highlight, downloading, onDownload, onSend }: {
+function BrandCard({ brand, highlight, downloading, sharing, onDownload, onShareWhatsApp, onSend }: {
   brand: BrandGroup
   highlight?: boolean
   downloading: boolean
+  sharing: boolean
   onDownload: () => void
+  onShareWhatsApp: () => void
   onSend: () => void
 }) {
   return (
@@ -267,12 +286,26 @@ function BrandCard({ brand, highlight, downloading, onDownload, onSend }: {
         <button
           onClick={onDownload}
           disabled={downloading}
+          title="Gerar PDF"
           className="flex-1 py-2 bg-[#171717] hover:bg-[#1c1c1c] text-gray-300 border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg text-xs font-semibold disabled:opacity-40 transition-all"
         >
-          {downloading ? 'Gerando...' : '⬇ Gerar PDF'}
+          {downloading ? 'Gerando...' : '⬇ PDF'}
+        </button>
+        <button
+          onClick={onShareWhatsApp}
+          disabled={sharing}
+          title="Enviar pelo WhatsApp (igual aos pedidos de venda)"
+          className="flex-1 py-2 flex items-center justify-center gap-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-lg text-xs font-semibold disabled:opacity-40 transition-all"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.15-.15.3-.345.45-.523.149-.181.198-.301.297-.504.099-.21.05-.375-.025-.524-.075-.15-.673-1.62-.923-2.206-.244-.584-.5-.51-.673-.51-.172-.015-.371-.015-.57-.015-.2 0-.523.074-.797.359-.273.3-1.045 1.02-1.045 2.475 0 1.455 1.07 2.86 1.219 3.06.149.195 2.05 3.135 4.999 4.27 2.95 1.137 2.95.757 3.483.71.522-.046 1.703-.696 1.94-1.367.24-.673.24-1.245.165-1.367-.074-.121-.273-.196-.574-.346z"/>
+            <path d="M12.05 1.5c-5.83 0-10.55 4.72-10.55 10.55 0 1.99.55 3.85 1.51 5.44L1.5 22.5l4.86-1.49a10.5 10.5 0 0 0 5.69 1.59c5.83 0 10.55-4.72 10.55-10.55S17.88 1.5 12.05 1.5zm0 19.05c-1.86 0-3.59-.55-5.05-1.5l-.36-.21-3.6 1.11 1.13-3.47-.23-.36a8.48 8.48 0 0 1-1.39-4.62c0-4.7 3.83-8.53 8.53-8.53s8.53 3.83 8.53 8.53-3.84 8.55-8.56 8.55z"/>
+          </svg>
+          {sharing ? 'Gerando...' : 'WhatsApp'}
         </button>
         <button
           onClick={onSend}
+          title="Enviar para um cliente específico (e-mail ou WhatsApp)"
           className="flex-1 py-2 bg-[#28AEA4] hover:bg-[#3cbdb6] text-white rounded-lg text-xs font-bold transition-all"
         >
           Enviar

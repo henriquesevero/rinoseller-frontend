@@ -56,6 +56,12 @@ export const updatePrice = (id: string, price: number) =>
     body: JSON.stringify({ price }),
   })
 
+export const updateCostPrice = (id: string, costPrice: number) =>
+  request<{ message: string }>(`/products/${id}/cost-price`, {
+    method: 'PATCH',
+    body: JSON.stringify({ cost_price: costPrice }),
+  })
+
 export const updateStock = (id: string, quantity: number) =>
   request<{ message: string }>(`/products/${id}/stock`, {
     method: 'PATCH',

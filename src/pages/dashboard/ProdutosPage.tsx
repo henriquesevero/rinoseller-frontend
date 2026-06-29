@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getProducts, createProduct, updatePrice, updateStock, deleteProduct } from '../../api/client'
+import { getProducts, createProduct, updatePrice, updateCostPrice, updateStock, deleteProduct } from '../../api/client'
 import type { Product, KitItem } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { exportProductsPDF } from '../../utils/productDocument'
@@ -137,6 +137,15 @@ export function ProdutosPage() {
   const [importing, setImporting] = useState(false)
   const [importDone, setImportDone] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [showAdjustPrice, setShowAdjustPrice] = useState(false)
+  const [adjustBrand, setAdjustBrand] = useState('')
+  const [adjustCostPct, setAdjustCostPct] = useState('')
+  const [adjustPricePct, setAdjustPricePct] = useState('')
+  const [adjusting, setAdjusting] = useState(false)
+  const [adjustDone, setAdjustDone] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -223,6 +232,53 @@ export function ProdutosPage() {
     setConfirmDelete(null)
     try { await deleteProduct(id); await load() }
     catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro ao excluir produto') }
+  }
+
+  const toggleSelected = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const doBulkDelete = async () => {
+    setConfirmBulkDelete(false)
+    setBulkDeleting(true)
+    for (const id of selected) {
+      try { await deleteProduct(id) } catch { /* segue para os próximos */ }
+    }
+    setSelected(new Set())
+    setBulkDeleting(false)
+    await load()
+  }
+
+  const doAdjustPrices = async () => {
+    const costPct = parseFloat(adjustCostPct.replace(',', '.'))
+    const pricePct = parseFloat(adjustPricePct.replace(',', '.'))
+    if (!adjustBrand || (isNaN(costPct) && isNaN(pricePct))) return
+    const targets = products.filter(p => p.brand === adjustBrand)
+    if (targets.length === 0) return
+    setAdjusting(true)
+    setAdjustDone(0)
+    for (const p of targets) {
+      try {
+        if (!isNaN(costPct) && costPct !== 0) {
+          await updateCostPrice(p.id, Math.round(p.cost_price * (1 + costPct / 100) * 100) / 100)
+        }
+        if (!isNaN(pricePct) && pricePct !== 0) {
+          await updatePrice(p.id, Math.round(p.price * (1 + pricePct / 100) * 100) / 100)
+        }
+      } catch { /* segue para os próximos */ }
+      setAdjustDone(d => d + 1)
+    }
+    setAdjusting(false)
+    setShowAdjustPrice(false)
+    setAdjustBrand('')
+    setAdjustCostPct('')
+    setAdjustPricePct('')
+    await load()
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,6 +369,16 @@ export function ProdutosPage() {
   const exportScopeLabel = filterBrand === 'Todas' ? 'Total' : filterBrand
   const exportList = filterBrand === 'Todas' ? products : products.filter(p => p.brand === filterBrand)
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id))
+  const toggleSelectAllFiltered = () => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach(p => next.delete(p.id))
+      else filtered.forEach(p => next.add(p.id))
+      return next
+    })
+  }
+
   const validImport = importRows.filter(r => !r.error)
 
   const kitSearchResults = kitSearch.trim()
@@ -354,6 +420,15 @@ export function ProdutosPage() {
             <span className="text-[10px] text-gray-600 font-normal">({exportScopeLabel})</span>
           </button>
           <button
+            onClick={() => { setAdjustBrand(filterBrand !== 'Todas' ? filterBrand : ''); setShowAdjustPrice(true) }}
+            className="flex items-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Reajustar preços
+          </button>
+          <button
             onClick={openNew}
             className="bg-[#28AEA4] hover:bg-[#3cbdb6] text-white font-bold px-5 py-2 rounded-xl text-sm tracking-wide transition-colors"
           >
@@ -363,21 +438,21 @@ export function ProdutosPage() {
       </div>
 
       {/* Stat blocks */}
-      <div className="px-6 pt-5 grid grid-cols-3 gap-3">
-        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Cadastrados</p>
-          <p className="text-lg sm:text-2xl font-bold text-white tabular-nums">{products.length}</p>
-          <p className="text-xs text-gray-600 mt-1">produtos no total</p>
+      <div className="px-6 pt-5 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-3 sm:p-5 min-w-0 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-semibold text-gray-500 uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-1 truncate">Cadastrados</p>
+          <p className="text-lg sm:text-2xl font-bold text-white tabular-nums truncate">{products.length}</p>
+          <p className="text-[11px] sm:text-xs text-gray-600 mt-1 truncate">produtos no total</p>
         </div>
-        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Estoque baixo</p>
-          <p className="text-lg sm:text-2xl font-bold text-amber-400 tabular-nums">{countLowStock}</p>
-          <p className="text-xs text-gray-600 mt-1">com 1 a 3 unidades</p>
+        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-3 sm:p-5 min-w-0 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-semibold text-gray-500 uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-1 truncate">Estoque baixo</p>
+          <p className="text-lg sm:text-2xl font-bold text-amber-400 tabular-nums truncate">{countLowStock}</p>
+          <p className="text-[11px] sm:text-xs text-gray-600 mt-1 truncate">com 1 a 3 unidades</p>
         </div>
-        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-4 sm:p-5">
-          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">Zerados</p>
-          <p className="text-lg sm:text-2xl font-bold text-red-400 tabular-nums">{countZerado}</p>
-          <p className="text-xs text-gray-600 mt-1">sem estoque</p>
+        <div className="bg-[#111111] border border-[#1e1e1e] rounded-2xl p-3 sm:p-5 min-w-0 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-semibold text-gray-500 uppercase tracking-[0.1em] sm:tracking-[0.2em] mb-1 truncate">Zerados</p>
+          <p className="text-lg sm:text-2xl font-bold text-red-400 tabular-nums truncate">{countZerado}</p>
+          <p className="text-[11px] sm:text-xs text-gray-600 mt-1 truncate">sem estoque</p>
         </div>
       </div>
 
@@ -451,6 +526,39 @@ export function ProdutosPage() {
         </button>
       </div>
 
+      {/* Seleção e ações em massa */}
+      {!loading && filtered.length > 0 && (
+        <div className="px-6 pt-4 flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={allFilteredSelected}
+              onChange={toggleSelectAllFiltered}
+              className="w-4 h-4 rounded accent-[#28AEA4]"
+            />
+            Selecionar todos ({filtered.length})
+          </label>
+          {selected.size > 0 && (
+            <>
+              <span className="text-xs text-[#28AEA4] font-medium">{selected.size} selecionado(s)</span>
+              <button
+                onClick={() => setSelected(new Set())}
+                className="text-xs text-gray-500 hover:text-white transition-colors"
+              >
+                Limpar seleção
+              </button>
+              <button
+                onClick={() => setConfirmBulkDelete(true)}
+                disabled={bulkDeleting}
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-semibold hover:bg-red-500/20 disabled:opacity-40 transition-colors"
+              >
+                {bulkDeleting ? 'Excluindo...' : `Excluir selecionados (${selected.size})`}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Product list */}
       <div className="px-6 py-4 space-y-1.5">
         {loading && (
@@ -470,8 +578,14 @@ export function ProdutosPage() {
           const low = product.stock_quantity <= 3
 
           return (
-            <div key={product.id} className="bg-[#111111] border border-[#1e1e1e] hover:border-[#2a2a2a] rounded-xl px-4 py-3 transition-colors">
+            <div key={product.id} className={`bg-[#111111] border rounded-xl px-4 py-3 transition-colors ${selected.has(product.id) ? 'border-[#28AEA4]/40' : 'border-[#1e1e1e] hover:border-[#2a2a2a]'}`}>
               <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selected.has(product.id)}
+                  onChange={() => toggleSelected(product.id)}
+                  className="w-4 h-4 rounded accent-[#28AEA4] flex-shrink-0"
+                />
                 {product.code && (
                   <span className="text-[10px] text-gray-600 font-mono w-7 flex-shrink-0">{product.code}</span>
                 )}
@@ -775,6 +889,66 @@ export function ProdutosPage() {
         </div>
       )}
 
+      {/* Reajuste de preços por marca */}
+      {showAdjustPrice && (() => {
+        const targets = adjustBrand ? products.filter(p => p.brand === adjustBrand) : []
+        const costPctNum = parseFloat(adjustCostPct.replace(',', '.'))
+        const pricePctNum = parseFloat(adjustPricePct.replace(',', '.'))
+        const canApply = !adjusting && targets.length > 0 && (!isNaN(costPctNum) && costPctNum !== 0 || !isNaN(pricePctNum) && pricePctNum !== 0)
+        return (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-[#0f0f0f] border border-[#222] rounded-2xl w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-[#1c1c1c]">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Reajustar preços por marca</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Aplica um % de aumento sobre o preço atual de cada produto da marca</p>
+                </div>
+                <button onClick={() => setShowAdjustPrice(false)} className="text-gray-600 hover:text-white text-2xl leading-none">×</button>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <div>
+                  <label className="field-label">Marca *</label>
+                  <select className="field-input" value={adjustBrand} onChange={e => setAdjustBrand(e.target.value)}>
+                    <option value="">Selecionar...</option>
+                    {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+                  </select>
+                  {adjustBrand && (
+                    <p className="text-xs text-gray-600 mt-1.5">{targets.length} produto(s) dessa marca</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="field-label">Aumento no custo (%)</label>
+                    <input
+                      type="number" step="0.01" className="field-input" placeholder="Ex: 10"
+                      value={adjustCostPct} onChange={e => setAdjustCostPct(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label">Aumento na venda (%)</label>
+                    <input
+                      type="number" step="0.01" className="field-input" placeholder="Ex: 20"
+                      value={adjustPricePct} onChange={e => setAdjustPricePct(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600">Deixe um dos campos vazio (ou zero) para reajustar só custo ou só venda.</p>
+              </div>
+              <div className="flex gap-3 px-6 py-4 border-t border-[#1c1c1c]">
+                <button onClick={() => setShowAdjustPrice(false)} disabled={adjusting}
+                  className="flex-1 border border-[#2a2a2a] text-gray-400 rounded-xl py-3 text-sm hover:bg-[#141414] disabled:opacity-40 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={doAdjustPrices} disabled={!canApply}
+                  className="flex-1 bg-[#28AEA4] hover:bg-[#3cbdb6] disabled:bg-[#0c5a55] disabled:text-[#6edbd5] text-white font-bold rounded-xl py-3 text-sm transition-colors">
+                  {adjusting ? `Atualizando... ${adjustDone}/${targets.length}` : 'Aplicar reajuste'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       <ConfirmModal
         open={confirmDelete !== null}
         title="Excluir produto?"
@@ -783,6 +957,16 @@ export function ProdutosPage() {
         danger
         onConfirm={doDelete}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmModal
+        open={confirmBulkDelete}
+        title={`Excluir ${selected.size} produto(s)?`}
+        message="Esta ação é permanente e não pode ser desfeita. Os produtos selecionados serão removidos do sistema."
+        confirmLabel="Sim, excluir"
+        danger
+        onConfirm={doBulkDelete}
+        onCancel={() => setConfirmBulkDelete(false)}
       />
 
       {/* ── Modal Categorias e Marcas ── */}

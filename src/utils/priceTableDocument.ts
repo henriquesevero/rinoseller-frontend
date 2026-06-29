@@ -168,6 +168,47 @@ export async function downloadPriceTablePDF(products: Product[], brandLabel: str
   URL.revokeObjectURL(blobUrl)
 }
 
+// Envia a tabela direto, sem escolher cliente (igual ao botão de WhatsApp dos pedidos de venda):
+// no celular abre o seletor nativo de compartilhamento já com o PDF; no desktop baixa o PDF
+// e abre o WhatsApp para o vendedor escolher a conversa e anexar o arquivo.
+export async function sharePriceTableWhatsApp(products: Product[], brandLabel: string): Promise<void> {
+  const fileName = `tabela-precos-${slug(brandLabel)}.pdf`
+  const message  = `Olá! Segue a tabela de preços de ${brandLabel}.`
+
+  let pdfBlob: Blob
+  try {
+    pdfBlob = await generatePDFBlob(products, brandLabel)
+  } catch {
+    throw new Error('Não foi possível gerar o PDF.')
+  }
+
+  const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
+
+  if (
+    navigator.share &&
+    typeof navigator.canShare === 'function' &&
+    navigator.canShare({ files: [pdfFile] })
+  ) {
+    try {
+      await navigator.share({ title: `Tabela de Preços — ${brandLabel}`, text: message, files: [pdfFile] })
+      return
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
+    }
+  }
+
+  const blobUrl = URL.createObjectURL(pdfBlob)
+  const link    = document.createElement('a')
+  link.href     = blobUrl
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(blobUrl)
+
+  setTimeout(() => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+  }, 600)
+}
+
 export interface SendResult { ok: Client[]; failed: { client: Client; error: string }[] }
 
 // Envia a mesma tabela (gerada uma única vez) por e-mail para vários clientes.
