@@ -442,11 +442,11 @@ export function ProdutosPage() {
           <h1 className="text-2xl font-bold text-white">Produtos</h1>
           <p className="text-gray-500 text-sm mt-0.5">{products.length} produtos cadastrados</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileChange} />
           <button
             onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors w-full sm:w-auto"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
@@ -456,7 +456,7 @@ export function ProdutosPage() {
           <button
             onClick={() => exportProductsPDF(exportList, exportScopeLabel)}
             title={`Exportar ${exportScopeLabel === 'Total' ? 'todos os produtos' : `apenas a marca ${exportScopeLabel}`}`}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors w-full sm:w-auto"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -466,7 +466,7 @@ export function ProdutosPage() {
           </button>
           <button
             onClick={() => { setAdjustBrand(filterBrand !== 'Todas' ? filterBrand : ''); setShowAdjustPrice(true) }}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 border border-[#2a2a2a] text-gray-400 hover:text-white hover:border-[#3a3a3a] rounded-xl text-sm transition-colors w-full sm:w-auto"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
@@ -475,7 +475,7 @@ export function ProdutosPage() {
           </button>
           <button
             onClick={openNew}
-            className="bg-[#28AEA4] hover:bg-[#3cbdb6] text-white font-bold px-5 py-2 rounded-xl text-sm tracking-wide transition-colors"
+            className="bg-[#28AEA4] hover:bg-[#3cbdb6] text-white font-bold px-5 py-2 rounded-xl text-sm tracking-wide transition-colors w-full sm:w-auto"
           >
             + Novo Produto
           </button>
