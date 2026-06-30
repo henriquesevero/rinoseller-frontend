@@ -52,15 +52,6 @@ function FilterDropdown({ value, options, onChange }: FilterDropdownProps) {
   )
 }
 
-const DEFAULT_CATEGORIES: CategoryDef[] = [
-  { name: 'Lavatório' },
-  { name: 'Químicos' },
-  { name: 'Finalizadores' },
-  { name: 'Tratamentos' },
-  { name: 'Coloração' },
-  { name: 'Outros' },
-]
-
 interface CategoryDef { name: string }
 
 function loadCategories(): CategoryDef[] {
@@ -68,7 +59,7 @@ function loadCategories(): CategoryDef[] {
     const raw = localStorage.getItem('korav_categories')
     if (raw) return (JSON.parse(raw) as CategoryDef[]).map(c => ({ name: c.name }))
   } catch { /* ignore */ }
-  return DEFAULT_CATEGORIES
+  return []
 }
 
 function saveCategories(cats: CategoryDef[]) {
@@ -150,7 +141,17 @@ export function ProdutosPage() {
   const load = useCallback(async () => {
     setLoading(true)
     const data = await getProducts().catch(() => [])
-    setProducts((data ?? []).sort((a, b) => a.name.localeCompare(b.name)))
+    const list = (data ?? []).sort((a, b) => a.name.localeCompare(b.name))
+    setProducts(list)
+    const productCats = [...new Set(list.map(p => p.category).filter(Boolean))]
+    setCategories(prev => {
+      const existing = new Set(prev.map(c => c.name))
+      const toAdd = productCats.filter(n => !existing.has(n)).map(n => ({ name: n }))
+      if (toAdd.length === 0) return prev
+      const next = [...prev, ...toAdd]
+      saveCategories(next)
+      return next
+    })
     setLoading(false)
   }, [])
 
@@ -200,6 +201,15 @@ export function ProdutosPage() {
   const removeKitItem = (productId: string) => {
     setKitItems(items => items.filter(i => i.product_id !== productId))
   }
+
+  useEffect(() => {
+    if (!isKit) return
+    const sum = kitItems.reduce((s, item) => {
+      const prod = products.find(p => p.id === item.product_id)
+      return s + (prod ? prod.price * item.quantity : 0)
+    }, 0)
+    setNewP(p => ({ ...p, price: sum > 0 ? sum.toFixed(2) : '' }))
+  }, [isKit, kitItems, products])
 
   const handleCreate = async () => {
     if (!newP.name || !newP.price) return
@@ -735,7 +745,11 @@ export function ProdutosPage() {
                 <div>
                   <label className="field-label">Preço de Venda (R$) *</label>
                   <input type="number" className="field-input" placeholder="0,00" value={newP.price}
+                    readOnly={isKit}
+                    disabled={isKit}
+                    title={isKit ? 'Calculado automaticamente pela soma dos produtos do kit' : undefined}
                     onChange={e => setNewP(p => ({ ...p, price: e.target.value }))} />
+                  {isKit && <p className="text-[10px] text-gray-600 mt-1">Soma automática dos produtos do kit</p>}
                 </div>
                 <div>
                   <label className="field-label">Preço de Custo (R$)</label>

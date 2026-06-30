@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { createProduct, updatePrice, updateStock } from '../api/client'
-import type { Client, Product } from '../types'
+import type { Client, Product, KitItem } from '../types'
 import { ConfirmModal } from './ConfirmModal'
 
 const CATEGORIES = ['Químicos', 'Lavatório', 'Finalizadores', 'Acessórios', 'Tratamentos']
@@ -74,6 +74,9 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const [newProd, setNewProd]           = useState(EMPTY_NEW_PROD)
   const [savingNewProd, setSavingNewProd] = useState(false)
   const [newProdError, setNewProdError]   = useState('')
+  const [newProdIsKit, setNewProdIsKit]   = useState(false)
+  const [newProdKitItems, setNewProdKitItems] = useState<KitItem[]>([])
+  const [newProdKitSearch, setNewProdKitSearch] = useState('')
 
   // carrinho
   const [cart, setCart]   = useState<CartEntry[]>([])
@@ -108,6 +111,14 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
 
   const filteredProducts = prodSearch.trim().length > 0
     ? products.filter(p => p.name.toLowerCase().includes(prodSearch.toLowerCase()))
+    : []
+
+  const newProdKitSearchResults = newProdKitSearch.trim()
+    ? products
+        .filter(p => !p.is_kit)
+        .filter(p => p.name.toLowerCase().includes(newProdKitSearch.toLowerCase()))
+        .filter(p => !newProdKitItems.some(i => i.product_id === p.id))
+        .slice(0, 8)
     : []
 
   // ── Handlers — cliente ────────────────────────────────────────────────────────
@@ -158,11 +169,39 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
 
   const openNewProd = () => {
     setNewProd({ ...EMPTY_NEW_PROD, name: prodSearch })
+    setNewProdIsKit(false); setNewProdKitItems([]); setNewProdKitSearch('')
     setShowNewProd(true); setProdOpen(false); setNewProdError('')
   }
 
+  const addNewProdKitItem = (p: Product) => {
+    setNewProdKitItems(items => {
+      const existing = items.find(i => i.product_id === p.id)
+      if (existing) return items.map(i => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i)
+      return [...items, { product_id: p.id, product_name: p.name, quantity: 1 }]
+    })
+    setNewProdKitSearch('')
+  }
+
+  const setNewProdKitItemQty = (productId: string, qty: number) => {
+    setNewProdKitItems(items => items.map(i => i.product_id === productId ? { ...i, quantity: Math.max(1, qty) } : i))
+  }
+
+  const removeNewProdKitItem = (productId: string) => {
+    setNewProdKitItems(items => items.filter(i => i.product_id !== productId))
+  }
+
+  useEffect(() => {
+    if (!newProdIsKit) return
+    const sum = newProdKitItems.reduce((s, item) => {
+      const prod = products.find(p => p.id === item.product_id)
+      return s + (prod ? prod.price * item.quantity : 0)
+    }, 0)
+    setNewProd(p => ({ ...p, price: sum > 0 ? sum.toFixed(2) : '' }))
+  }, [newProdIsKit, newProdKitItems, products])
+
   const handleCreateProduct = async () => {
     if (!newProd.name || !newProd.price) { setNewProdError('Nome e preço são obrigatórios'); return }
+    if (newProdIsKit && newProdKitItems.length === 0) { setNewProdError('Adicione ao menos um produto componente do kit'); return }
     setSavingNewProd(true); setNewProdError('')
     try {
       const created = await createProduct({
@@ -170,12 +209,15 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
         category: newProd.category,
         price: parseFloat(newProd.price),
         cost_price: parseFloat(newProd.cost_price || '0'),
-        stock_quantity: parseInt(newProd.stock_quantity || '0'),
+        stock_quantity: newProdIsKit ? 0 : parseInt(newProd.stock_quantity || '0'),
         code: nextProductCode(products),
+        is_kit: newProdIsKit,
+        kit_items: newProdIsKit ? newProdKitItems : undefined,
       })
       setProducts(prev => [...prev, created])
       setCart(prev => [...prev, { product_id: created.id, product_name: created.name, price: created.price, quantity: 1 }])
       setShowNewProd(false); setNewProd(EMPTY_NEW_PROD); setProdSearch('')
+      setNewProdIsKit(false); setNewProdKitItems([]); setNewProdKitSearch('')
     } catch (e: unknown) {
       setNewProdError(e instanceof Error ? e.message : 'Erro ao criar produto')
     } finally {
@@ -224,6 +266,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const resetModal = () => {
     setSelectedClient(''); setClientSearch(''); setCart([]); setNotes('')
     setProdSearch(''); setShowNewProd(false); setNewProd(EMPTY_NEW_PROD)
+    setNewProdIsKit(false); setNewProdKitItems([]); setNewProdKitSearch('')
     setEditingPriceId(null); setError(''); setStockWarning('')
     setPaymentType(''); setInstallments(1)
     setDiscountType(''); setDiscountValue('')
@@ -330,12 +373,12 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                           const outOfStock = !p.is_kit && p.stock_quantity === 0
                           return (
                             <button key={p.id} onMouseDown={() => selectProduct(p)}
-                              className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left ${outOfStock ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : 'hover:bg-[#272727]'}`}>
-                              <span className="text-gray-200 flex items-center gap-2">
-                                {p.name}
-                                {outOfStock && <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">Sem estoque</span>}
+                              className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm transition-colors text-left ${outOfStock ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : 'hover:bg-[#272727]'}`}>
+                              <span className="flex-1 min-w-0 text-gray-200 flex items-center gap-2">
+                                <span className="truncate">{p.name}</span>
+                                {outOfStock && <span className="flex-shrink-0 text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded">Sem estoque</span>}
                               </span>
-                              <span className="text-[#28AEA4] ml-4 flex-shrink-0">{fmt(p.price)}</span>
+                              <span className="text-[#28AEA4] flex-shrink-0">{fmt(p.price)}</span>
                             </button>
                           )
                         })}
@@ -419,16 +462,18 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Estoque inicial</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={newProd.stock_quantity}
-                        onChange={e => setNewProd(p => ({ ...p, stock_quantity: e.target.value }))}
-                        className="w-full bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40"
-                      />
-                    </div>
+                    {!newProdIsKit && (
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Estoque inicial</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={newProd.stock_quantity}
+                          onChange={e => setNewProd(p => ({ ...p, stock_quantity: e.target.value }))}
+                          className="w-full bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -439,9 +484,13 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                         min="0"
                         step="0.01"
                         value={newProd.price}
+                        readOnly={newProdIsKit}
+                        disabled={newProdIsKit}
+                        title={newProdIsKit ? 'Calculado automaticamente pela soma dos produtos do kit' : undefined}
                         onChange={e => setNewProd(p => ({ ...p, price: e.target.value }))}
-                        className="w-full bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40"
+                        className="w-full bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40 disabled:opacity-60"
                       />
+                      {newProdIsKit && <p className="text-[10px] text-gray-600 mt-1">Soma automática dos produtos do kit</p>}
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Custo (R$)</label>
@@ -456,18 +505,84 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                     </div>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={() => { setNewProdIsKit(v => !v); setNewProdKitItems([]); setNewProdKitSearch('') }}
+                    className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${
+                      newProdIsKit ? 'bg-[#28AEA4]/10 border-[#28AEA4]/30' : 'bg-[#1a1a1a] border-[#272727] hover:border-[#3a3a3a]'
+                    }`}
+                  >
+                    <div>
+                      <p className={`text-sm font-medium ${newProdIsKit ? 'text-[#28AEA4]' : 'text-gray-300'}`}>Este produto é um kit</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Agrupa outros produtos como combo</p>
+                    </div>
+                    <div className={`w-10 h-6 rounded-full flex-shrink-0 relative transition-colors ${newProdIsKit ? 'bg-[#28AEA4]' : 'bg-[#2a2a2a]'}`}>
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${newProdIsKit ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                    </div>
+                  </button>
+
+                  {newProdIsKit && (
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Produtos do kit</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Buscar produto para adicionar..."
+                          value={newProdKitSearch}
+                          onChange={e => setNewProdKitSearch(e.target.value)}
+                          className="w-full bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40"
+                        />
+                        {newProdKitSearchResults.length > 0 && (
+                          <div className="absolute z-10 left-0 right-0 mt-1.5 bg-[#1a1a1a] border border-[#272727] rounded-lg overflow-hidden shadow-xl max-h-48 overflow-y-auto">
+                            {newProdKitSearchResults.map(p => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => addNewProdKitItem(p)}
+                                className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#28AEA4]/10 hover:text-[#28AEA4] transition-colors flex items-center justify-between gap-2"
+                              >
+                                <span className="truncate">{p.name}</span>
+                                <span className="text-xs text-gray-600 flex-shrink-0">{fmt(p.price)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {newProdKitItems.length > 0 && (
+                        <div className="mt-2 space-y-1.5">
+                          {newProdKitItems.map(item => (
+                            <div key={item.product_id} className="flex items-center gap-2 bg-[#1a1a1a] border border-[#272727] rounded-lg px-3 py-1.5">
+                              <span className="flex-1 text-sm text-gray-300 truncate">{item.product_name}</span>
+                              <button type="button" onClick={() => setNewProdKitItemQty(item.product_id, item.quantity - 1)}
+                                className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-white border border-[#2a2a2a] rounded-md text-sm">−</button>
+                              <span className="w-6 text-center text-sm text-white tabular-nums">{item.quantity}</span>
+                              <button type="button" onClick={() => setNewProdKitItemQty(item.product_id, item.quantity + 1)}
+                                className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-white border border-[#2a2a2a] rounded-md text-sm">+</button>
+                              <button type="button" onClick={() => removeNewProdKitItem(item.product_id)}
+                                className="text-gray-700 hover:text-red-400 transition-colors ml-1">×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {newProdKitItems.length === 0 && (
+                        <p className="text-xs text-gray-700 mt-2">Adicione ao menos um produto componente do kit.</p>
+                      )}
+                    </div>
+                  )}
+
                   {newProdError && <p className="text-red-400 text-xs">{newProdError}</p>}
 
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={handleCreateProduct}
-                      disabled={savingNewProd}
+                      disabled={savingNewProd || (newProdIsKit && newProdKitItems.length === 0)}
                       className="flex-1 py-2 bg-[#28AEA4] text-white rounded-lg text-sm font-semibold hover:bg-[#1d9992] disabled:opacity-40 transition-colors"
                     >
                       {savingNewProd ? 'Criando…' : 'Criar e adicionar'}
                     </button>
                     <button
-                      onClick={() => { setShowNewProd(false); setNewProd(EMPTY_NEW_PROD) }}
+                      onClick={() => { setShowNewProd(false); setNewProd(EMPTY_NEW_PROD); setNewProdIsKit(false); setNewProdKitItems([]); setNewProdKitSearch('') }}
                       className="px-4 py-2 bg-[#1a1a1a] border border-[#272727] text-gray-500 rounded-lg text-sm hover:text-white transition-colors"
                     >
                       Cancelar
