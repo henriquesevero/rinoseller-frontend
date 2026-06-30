@@ -15,7 +15,7 @@ export default defineConfig({
         theme_color: '#28AEA4',
         background_color: '#0f0f0f',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/dashboard',
         scope: '/',
         lang: 'pt-BR',
         icons: [
