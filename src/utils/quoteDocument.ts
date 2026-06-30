@@ -138,15 +138,24 @@ function buildBodyContent(quote: Quote, client?: Client, kind: 'orcamento' | 'pe
 
     <div class="totals">
       <div class="totals-box">
-        <div class="totals-row">
-          <span>${quote.items.length} ${quote.items.length === 1 ? 'item' : 'itens'}</span>
-          <span>${fmt(quote.total)}</span>
-        </div>
-        ${fmtPayment(quote) ? `<div class="totals-row" style="color:#666;font-size:11px"><span>Pagamento</span><span>${fmtPayment(quote)}</span></div>` : ''}
-        <div class="totals-row grand">
-          <span>TOTAL</span>
-          <span>${fmt(quote.total)}</span>
-        </div>
+        ${(() => {
+          const subtotal = quote.items.reduce((s, i) => s + i.subtotal, 0)
+          const hasDiscount = quote.discount_type && quote.discount_value > 0
+          const discAmt = hasDiscount
+            ? (quote.discount_type === '%'
+                ? subtotal * quote.discount_value / 100
+                : Math.min(quote.discount_value, subtotal))
+            : 0
+          const discLabel = hasDiscount
+            ? `Desconto (${quote.discount_type === '%' ? `${quote.discount_value}%` : fmt(quote.discount_value)})`
+            : ''
+          return `
+            ${hasDiscount ? `<div class="totals-row"><span>Subtotal (${quote.items.length} ${quote.items.length === 1 ? 'item' : 'itens'})</span><span>${fmt(subtotal)}</span></div>` : `<div class="totals-row"><span>${quote.items.length} ${quote.items.length === 1 ? 'item' : 'itens'}</span><span>${fmt(subtotal)}</span></div>`}
+            ${hasDiscount ? `<div class="totals-row" style="color:#d97706"><span>${discLabel}</span><span>− ${fmt(discAmt)}</span></div>` : ''}
+            ${fmtPayment(quote) ? `<div class="totals-row" style="color:#666;font-size:11px"><span>Pagamento</span><span>${fmtPayment(quote)}</span></div>` : ''}
+            <div class="totals-row grand"><span>TOTAL</span><span>${fmt(quote.total)}</span></div>
+          `
+        })()}
       </div>
     </div>
 

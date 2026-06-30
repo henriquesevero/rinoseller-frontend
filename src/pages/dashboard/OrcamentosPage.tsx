@@ -225,6 +225,11 @@ export default function OrcamentosPage() {
                   <p className="text-gray-500 text-xs mt-1">{fmtDate(q.created_at)} · {q.items.length} {q.items.length === 1 ? 'item' : 'itens'}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
+                  {q.discount_type && q.discount_value > 0 && (
+                    <p className="text-amber-500 text-[10px] mb-0.5">
+                      Desc. {q.discount_type === '%' ? `${q.discount_value}%` : fmt(q.discount_value)}
+                    </p>
+                  )}
                   <p className="text-[#28AEA4] font-bold text-lg">{fmt(q.total)}</p>
                   {q.payment_type && (
                     <p className="text-gray-500 text-[10px] mt-0.5">
