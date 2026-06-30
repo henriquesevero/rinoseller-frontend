@@ -7,6 +7,10 @@
     {
       "source": "/c/:id",
       "destination": "https://rinoseller-api-production.up.railway.app/c/:id"
+    },
+    {
+      "source": "/((?!api/|c/|assets/|.*\\.[\\w]+$).*)",
+      "destination": "/index.html"
     }
   ]
 }
