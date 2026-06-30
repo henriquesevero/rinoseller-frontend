@@ -30,7 +30,7 @@ function FilterDropdown({ value, options, onChange }: FilterDropdownProps) {
         type="button"
         onClick={() => setOpen(v => !v)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="h-[38px] flex items-center justify-between gap-2 px-3.5 rounded-xl text-xs font-medium border transition-all bg-[#141414] text-gray-500 border-[#222] hover:text-gray-300 min-w-[170px]"
+        className="h-[38px] w-full sm:w-auto flex items-center justify-between gap-2 px-3.5 rounded-xl text-xs font-medium border transition-all bg-[#141414] text-gray-500 border-[#222] hover:text-gray-300 sm:min-w-[170px]"
       >
         <span className="truncate">{value}</span>
         <svg
@@ -521,26 +521,28 @@ export function ProdutosPage() {
       </div>
 
       {/* Filters */}
-      <div className="px-6 pt-4 flex items-end gap-3 flex-wrap">
-        <div>
-          <label className="filter-label">Categoria</label>
-          <FilterDropdown
-            value={filterCat === 'Todos' ? 'Todas as categorias' : filterCat}
-            options={['Todas as categorias', ...categories.map(c => c.name)]}
-            onChange={v => setFilterCat(v === 'Todas as categorias' ? 'Todos' : v)}
-          />
-        </div>
-        <div>
-          <label className="filter-label">Marca</label>
-          <FilterDropdown
-            value={filterBrand === 'Todas' ? 'Todas as marcas' : filterBrand}
-            options={['Todas as marcas', ...brands.map(b => b.name)]}
-            onChange={v => setFilterBrand(v === 'Todas as marcas' ? 'Todas' : v)}
-          />
+      <div className="px-6 pt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:gap-3">
+          <div className="min-w-0">
+            <label className="filter-label">Categoria</label>
+            <FilterDropdown
+              value={filterCat === 'Todos' ? 'Todas as categorias' : filterCat}
+              options={['Todas as categorias', ...categories.map(c => c.name)]}
+              onChange={v => setFilterCat(v === 'Todas as categorias' ? 'Todos' : v)}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="filter-label">Marca</label>
+            <FilterDropdown
+              value={filterBrand === 'Todas' ? 'Todas as marcas' : filterBrand}
+              options={['Todas as marcas', ...brands.map(b => b.name)]}
+              onChange={v => setFilterBrand(v === 'Todas as marcas' ? 'Todas' : v)}
+            />
+          </div>
         </div>
         <button
           onClick={() => setOnlyLowStock(v => !v)}
-          className={`h-[38px] flex items-center gap-1.5 px-3.5 rounded-xl text-xs font-medium border transition-all ${
+          className={`h-[38px] flex items-center justify-center gap-1.5 px-3.5 rounded-xl text-xs font-medium border transition-all ${
             onlyLowStock
               ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
               : 'bg-[#141414] text-gray-500 border-[#222] hover:text-gray-300'
@@ -554,14 +556,14 @@ export function ProdutosPage() {
         {(filterCat !== 'Todos' || filterBrand !== 'Todas' || onlyLowStock) && (
           <button
             onClick={() => { setFilterCat('Todos'); setFilterBrand('Todas'); setOnlyLowStock(false) }}
-            className="h-[38px] flex items-center px-3 text-xs text-gray-500 hover:text-white transition-colors"
+            className="h-[38px] flex items-center justify-center sm:justify-start px-3 text-xs text-gray-500 hover:text-white transition-colors"
           >
             Limpar filtros
           </button>
         )}
         <button
           onClick={() => setShowManageModal(true)}
-          className="h-[38px] ml-auto flex items-center gap-1.5 px-3.5 rounded-xl text-xs font-medium text-gray-500 border border-[#222] hover:text-white hover:border-[#3a3a3a] transition-all"
+          className="h-[38px] sm:ml-auto flex items-center justify-center gap-1.5 px-3.5 rounded-xl text-xs font-medium text-gray-500 border border-[#222] hover:text-white hover:border-[#3a3a3a] transition-all"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
