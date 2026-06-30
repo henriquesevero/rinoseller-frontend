@@ -19,6 +19,8 @@ function fmt(v: number) {
 }
 
 type CartEntry = { product_id: string; product_name: string; price: number; quantity: number }
+type KitShortage = { product: Product; required: number; current: number }
+type KitStockPrompt = { kit: Product; desiredQty: number; shortages: KitShortage[] }
 
 export interface QuoteFormPayload {
   client_id: string
@@ -92,6 +94,10 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const [stockInputValue, setStockInputValue] = useState('')
   const [savingStock, setSavingStock] = useState(false)
 
+  const [kitStockPrompt, setKitStockPrompt] = useState<KitStockPrompt | null>(null)
+  const [kitStockInputs, setKitStockInputs] = useState<Record<string, string>>({})
+  const [savingKitStock, setSavingKitStock] = useState(false)
+
   useEffect(() => {
     if (open && initialData) {
       setSelectedClient(initialData.clientId)
@@ -129,6 +135,17 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
 
   // ── Handlers — produto ────────────────────────────────────────────────────────
 
+  const computeKitShortages = (kit: Product, desiredQty: number): KitShortage[] => {
+    if (!kit.kit_items) return []
+    return kit.kit_items.reduce<KitShortage[]>((acc, ki) => {
+      const comp = products.find(p => p.id === ki.product_id)
+      const required = ki.quantity * desiredQty
+      const current = comp?.stock_quantity ?? 0
+      if (comp && current < required) acc.push({ product: comp, required, current })
+      return acc
+    }, [])
+  }
+
   const selectProduct = (prod: Product) => {
     if (!prod.is_kit && prod.stock_quantity === 0) {
       setStockInputProduct(prod)
@@ -137,9 +154,19 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
       return
     }
     const existingQty = cart.find(e => e.product_id === prod.id)?.quantity ?? 0
-    if (!prod.is_kit && existingQty + 1 > prod.stock_quantity) {
+    const desiredQty = existingQty + 1
+    if (!prod.is_kit && desiredQty > prod.stock_quantity) {
       setStockWarning(`Estoque insuficiente: apenas ${prod.stock_quantity} unidade(s) de "${prod.name}" disponível(eis).`)
       return
+    }
+    if (prod.is_kit) {
+      const shortages = computeKitShortages(prod, desiredQty)
+      if (shortages.length > 0) {
+        setKitStockPrompt({ kit: prod, desiredQty, shortages })
+        setKitStockInputs(Object.fromEntries(shortages.map(s => [s.product.id, String(s.required)])))
+        setProdSearch(''); setProdOpen(false); setStockWarning('')
+        return
+      }
     }
     setStockWarning('')
     setCart(prev => {
@@ -148,6 +175,31 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
       return [...prev, { product_id: prod.id, product_name: prod.name, price: prod.price, quantity: 1 }]
     })
     setProdSearch(''); setProdOpen(false)
+  }
+
+  const handleResolveKitStock = async () => {
+    if (!kitStockPrompt || savingKitStock) return
+    setSavingKitStock(true)
+    try {
+      for (const s of kitStockPrompt.shortages) {
+        const raw = parseInt(kitStockInputs[s.product.id] ?? '', 10)
+        const newStock = isNaN(raw) || raw < s.required ? s.required : raw
+        await updateStock(s.product.id, newStock)
+        setProducts(prev => prev.map(p => p.id === s.product.id ? { ...p, stock_quantity: newStock } : p))
+      }
+      const { kit, desiredQty } = kitStockPrompt
+      setCart(prev => {
+        const ex = prev.find(e => e.product_id === kit.id)
+        if (ex) return prev.map(e => e.product_id === kit.id ? { ...e, quantity: desiredQty } : e)
+        return [...prev, { product_id: kit.id, product_name: kit.name, price: kit.price, quantity: desiredQty }]
+      })
+      setKitStockPrompt(null)
+    } catch {
+      setStockWarning('Erro ao atualizar estoque dos componentes do kit. Tente novamente.')
+      setKitStockPrompt(null)
+    } finally {
+      setSavingKitStock(false)
+    }
   }
 
   const handleAddStockAndProduct = async () => {
@@ -235,8 +287,19 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const updateQty = (id: string, qty: number) => {
     if (qty <= 0) { setCart(prev => prev.filter(e => e.product_id !== id)); return }
     const prod = products.find(p => p.id === id)
-    const clamped = prod && !prod.is_kit ? Math.min(qty, prod.stock_quantity) : qty
-    setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: clamped } : e))
+    if (!prod) { setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: qty } : e)); return }
+    if (!prod.is_kit) {
+      const clamped = Math.min(qty, prod.stock_quantity)
+      setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: clamped } : e))
+      return
+    }
+    const shortages = computeKitShortages(prod, qty)
+    if (shortages.length > 0) {
+      setKitStockPrompt({ kit: prod, desiredQty: qty, shortages })
+      setKitStockInputs(Object.fromEntries(shortages.map(s => [s.product.id, String(s.required)])))
+      return
+    }
+    setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: qty } : e))
   }
 
   const startEditPrice = (id: string, currentPrice: number) => {
@@ -275,6 +338,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
     setProdSearch(''); setShowNewProd(false); setNewProd(EMPTY_NEW_PROD)
     setNewProdIsKit(false); setNewProdKitItems([]); setNewProdKitSearch('')
     setEditingPriceId(null); setError(''); setStockWarning('')
+    setStockInputProduct(null); setKitStockPrompt(null); setKitStockInputs({})
     setPaymentType(''); setInstallments(1)
     setDiscountType(''); setDiscountValue('')
   }
@@ -436,6 +500,46 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                     <button
                       onClick={() => setStockInputProduct(null)}
                       className="px-3 py-2 bg-[#1a1a1a] border border-[#272727] text-gray-500 rounded-lg text-sm hover:text-white transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {kitStockPrompt && (
+                <div className="mt-2 bg-[#141414] border border-amber-500/25 rounded-xl p-3.5 space-y-2.5">
+                  <p className="text-xs text-amber-400 font-medium">
+                    O kit "{kitStockPrompt.kit.name}" precisa de mais estoque nos componentes abaixo para {kitStockPrompt.desiredQty}x:
+                  </p>
+                  <div className="space-y-1.5">
+                    {kitStockPrompt.shortages.map(s => (
+                      <div key={s.product.id} className="flex items-center gap-2">
+                        <span className="flex-1 min-w-0 text-xs text-gray-400">
+                          <span className="truncate block">{s.product.name}</span>
+                          <span className="text-gray-600">atual: {s.current} · necessário: {s.required}</span>
+                        </span>
+                        <input
+                          type="number"
+                          min={s.required}
+                          value={kitStockInputs[s.product.id] ?? ''}
+                          onChange={e => setKitStockInputs(v => ({ ...v, [s.product.id]: e.target.value }))}
+                          className="w-24 flex-shrink-0 bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#28AEA4]/40"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleResolveKitStock}
+                      disabled={savingKitStock}
+                      className="flex-1 py-2 bg-[#28AEA4] text-white rounded-lg text-sm font-semibold hover:bg-[#1d9992] disabled:opacity-40 transition-colors"
+                    >
+                      {savingKitStock ? 'Salvando…' : 'Adicionar estoque e incluir kit'}
+                    </button>
+                    <button
+                      onClick={() => { setKitStockPrompt(null); setKitStockInputs({}) }}
+                      className="px-4 py-2 bg-[#1a1a1a] border border-[#272727] text-gray-500 rounded-lg text-sm hover:text-white transition-colors"
                     >
                       Cancelar
                     </button>

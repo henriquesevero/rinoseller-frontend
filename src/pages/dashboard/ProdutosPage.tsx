@@ -8,6 +8,14 @@ function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+function kitAvailableStock(product: Product, products: Product[]): number {
+  if (!product.kit_items || product.kit_items.length === 0) return 0
+  return Math.min(...product.kit_items.map(ki => {
+    const comp = products.find(p => p.id === ki.product_id)
+    return Math.floor((comp?.stock_quantity ?? 0) / ki.quantity)
+  }))
+}
+
 interface FilterDropdownProps {
   value: string
   options: string[]
@@ -106,6 +114,8 @@ export function ProdutosPage() {
   const [loading, setLoading] = useState(true)
   const [edit, setEdit] = useState<EditState | null>(null)
   const [saving, setSaving] = useState(false)
+  const [kitStockEdit, setKitStockEdit] = useState<{ kitId: string; componentId: string; componentName: string; value: string } | null>(null)
+  const [savingKitStock, setSavingKitStock] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [newP, setNewP] = useState(EMPTY_NEW)
   const [creating, setCreating] = useState(false)
@@ -173,6 +183,23 @@ export function ProdutosPage() {
       setEdit(null)
     } catch { alert('Erro ao salvar.') }
     finally { setSaving(false) }
+  }
+
+  const startKitStockEdit = (kitId: string, comp: Product) => {
+    setKitStockEdit({ kitId, componentId: comp.id, componentName: comp.name, value: String(comp.stock_quantity) })
+  }
+
+  const saveKitStockEdit = async () => {
+    if (!kitStockEdit || savingKitStock) return
+    const num = parseInt(kitStockEdit.value, 10)
+    if (isNaN(num) || num < 0) return
+    setSavingKitStock(true)
+    try {
+      await updateStock(kitStockEdit.componentId, num)
+      await load()
+      setKitStockEdit(null)
+    } catch { alert('Erro ao salvar.') }
+    finally { setSavingKitStock(false) }
   }
 
   const openNew = () => {
@@ -367,13 +394,21 @@ export function ProdutosPage() {
     await load()
   }
 
-  const countLowStock = products.filter(p => !p.is_kit && p.stock_quantity > 0 && p.stock_quantity <= 3).length
-  const countZerado   = products.filter(p => !p.is_kit && p.stock_quantity === 0).length
+  const isLowOrZero = (p: Product): 'zerado' | 'baixo' | null => {
+    const avail = p.is_kit ? kitAvailableStock(p, products) : p.stock_quantity
+    if (p.is_kit && (!p.kit_items || p.kit_items.length === 0)) return null
+    if (avail === 0) return 'zerado'
+    if (avail <= 3) return 'baixo'
+    return null
+  }
+
+  const countLowStock = products.filter(p => isLowOrZero(p) === 'baixo').length
+  const countZerado   = products.filter(p => isLowOrZero(p) === 'zerado').length
 
   const filtered = products
     .filter(p => filterCat === 'Todos' || p.category === filterCat)
     .filter(p => filterBrand === 'Todas' || p.brand === filterBrand)
-    .filter(p => !onlyLowStock || (!p.is_kit && p.stock_quantity <= 3))
+    .filter(p => !onlyLowStock || isLowOrZero(p) !== null)
     .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
 
   const exportScopeLabel = filterBrand === 'Todas' ? 'Total' : filterBrand
@@ -586,6 +621,8 @@ export function ProdutosPage() {
         {!loading && filtered.map(product => {
           const isEditing = edit?.productId === product.id
           const low = product.stock_quantity <= 3
+          const kitAvail = product.is_kit ? kitAvailableStock(product, products) : 0
+          const kitHasItems = !!product.kit_items && product.kit_items.length > 0
 
           return (
             <div key={product.id} className={`bg-[#111111] border rounded-xl px-4 py-3 transition-colors ${selected.has(product.id) ? 'border-[#28AEA4]/40' : 'border-[#1e1e1e] hover:border-[#2a2a2a]'}`}>
@@ -625,6 +662,16 @@ export function ProdutosPage() {
                         Estoque baixo
                       </span>
                     )}
+                    {product.is_kit && kitHasItems && kitAvail === 0 && (
+                      <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 rounded-full px-2 py-0.5 font-medium flex-shrink-0">
+                        Zerado
+                      </span>
+                    )}
+                    {product.is_kit && kitHasItems && kitAvail > 0 && kitAvail <= 3 && (
+                      <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5 font-medium flex-shrink-0">
+                        Estoque baixo
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-[#28AEA4] font-bold text-sm tabular-nums">{formatBRL(product.price)}</span>
@@ -632,11 +679,64 @@ export function ProdutosPage() {
                     {!product.is_kit && (
                       <span className={`text-xs font-medium ${product.stock_quantity === 0 ? 'text-red-400' : low ? 'text-amber-400' : 'text-gray-500'}`}>{product.stock_quantity} un.</span>
                     )}
+                    {product.is_kit && kitHasItems && (
+                      <span className={`text-xs font-medium ${kitAvail === 0 ? 'text-red-400' : kitAvail <= 3 ? 'text-amber-400' : 'text-gray-500'}`}>
+                        {kitAvail} kit(s) montável(eis)
+                      </span>
+                    )}
                   </div>
-                  {product.is_kit && product.kit_items && product.kit_items.length > 0 && (
-                    <p className="text-xs text-gray-600 mt-1 truncate">
-                      Inclui: {product.kit_items.map(i => `${i.quantity}x ${i.product_name}`).join(' + ')}
-                    </p>
+                  {product.is_kit && kitHasItems && (
+                    <div className="mt-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {product.kit_items!.map(ki => {
+                          const comp = products.find(p => p.id === ki.product_id)
+                          const compStock = comp?.stock_quantity ?? 0
+                          const short = compStock < ki.quantity
+                          return (
+                            <button
+                              key={ki.product_id}
+                              type="button"
+                              onClick={() => comp && startKitStockEdit(product.id, comp)}
+                              title="Clique para ajustar o estoque deste componente"
+                              className={`text-[10px] rounded-full px-2 py-0.5 border font-medium transition-colors ${
+                                short
+                                  ? 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20'
+                                  : 'bg-[#171717] text-gray-500 border-[#2a2a2a] hover:text-gray-300'
+                              }`}
+                            >
+                              {ki.quantity}x {ki.product_name} ({compStock} un.)
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {kitAvail === 0 && (
+                        <p className="text-xs text-red-400 font-medium mt-1.5">
+                          ⚠ Estoque insuficiente para montar este kit — clique no componente em falta acima para repor.
+                        </p>
+                      )}
+                      {kitStockEdit?.kitId === product.id && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-gray-500 text-xs flex-shrink-0">Novo estoque de "{kitStockEdit.componentName}":</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={kitStockEdit.value}
+                            onChange={e => setKitStockEdit(s => s ? { ...s, value: e.target.value } : s)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveKitStockEdit(); if (e.key === 'Escape') setKitStockEdit(null) }}
+                            className="w-28 bg-[#171717] border border-[#28AEA4]/40 rounded-lg px-2 py-1.5 text-sm text-white outline-none"
+                            autoFocus
+                          />
+                          <button onClick={saveKitStockEdit} disabled={savingKitStock}
+                            className="px-3 py-1.5 bg-[#28AEA4] disabled:bg-[#0c5a55] text-white text-xs rounded-lg font-bold">
+                            {savingKitStock ? '...' : 'Salvar'}
+                          </button>
+                          <button onClick={() => setKitStockEdit(null)}
+                            className="px-3 py-1.5 border border-[#2a2a2a] text-gray-500 text-xs rounded-lg">
+                            Cancelar
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
