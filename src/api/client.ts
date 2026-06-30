@@ -137,7 +137,16 @@ export const createQuote = (data: {
   notes?: string
   payment_type?: string
   installments?: number
+  discount_type?: string
+  discount_value?: number
 }) => request<Quote>('/quotes', { method: 'POST', body: JSON.stringify(data) })
+
+export const updateQuoteItems = (id: string, data: {
+  client_id: string
+  items: { product_id: string; quantity: number }[]
+  discount_type?: string
+  discount_value?: number
+}) => request<Quote>(`/quotes/${id}/items`, { method: 'PATCH', body: JSON.stringify(data) })
 
 export const approveQuote = (id: string) =>
   request<Quote>(`/quotes/${id}/approve`, { method: 'POST' })

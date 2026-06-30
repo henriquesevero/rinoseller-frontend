@@ -118,6 +118,8 @@ export interface Quote {
   notes: string
   payment_type: string
   installments: number
+  discount_type: string
+  discount_value: number
   created_at: string
   approved_at?: string
   invoiced_at?: string

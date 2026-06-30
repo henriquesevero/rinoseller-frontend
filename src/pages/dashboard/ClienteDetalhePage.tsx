@@ -91,6 +91,7 @@ export function ClienteDetalhePage() {
   const [saving, setSaving] = useState(false)
   const [confirmDeleteClient, setConfirmDeleteClient] = useState(false)
   const [confirmInvoiceQuote, setConfirmInvoiceQuote] = useState<string | null>(null)
+  const [confirmEmailQuote, setConfirmEmailQuote] = useState<Quote | null>(null)
   const [confirmClearPayments, setConfirmClearPayments] = useState(false)
   const [confirmClearQuotes, setConfirmClearQuotes] = useState(false)
   const [confirmClearOrders, setConfirmClearOrders] = useState(false)
@@ -598,7 +599,7 @@ export function ClienteDetalhePage() {
                         Gerar PDF
                       </button>
                       <button
-                        onClick={() => handleSendEmail(q)}
+                        onClick={() => setConfirmEmailQuote(q)}
                         disabled={!client.email}
                         title={!client.email ? 'Cliente sem e-mail cadastrado' : undefined}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 rounded-lg text-xs font-medium hover:text-white hover:border-[#3a3a3a] transition-colors disabled:opacity-30"
@@ -837,6 +838,15 @@ export function ClienteDetalhePage() {
         danger
         onConfirm={doClearOrders}
         onCancel={() => setConfirmClearOrders(false)}
+      />
+
+      <ConfirmModal
+        open={confirmEmailQuote !== null}
+        title="Enviar por e-mail?"
+        message={`Será enviado para ${client?.email ?? ''}. Confirmar?`}
+        confirmLabel="Sim, enviar"
+        onConfirm={() => { const q = confirmEmailQuote; setConfirmEmailQuote(null); if (q) handleSendEmail(q) }}
+        onCancel={() => setConfirmEmailQuote(null)}
       />
 
       {/* Edit Modal */}

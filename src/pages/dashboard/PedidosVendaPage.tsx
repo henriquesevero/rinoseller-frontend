@@ -56,6 +56,7 @@ export default function PedidosVendaPage() {
   const [confirmDeliver, setConfirmDeliver] = useState<string | null>(null)
   const [confirmInvoice, setConfirmInvoice] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete]   = useState<string | null>(null)
+  const [confirmEmailQuote, setConfirmEmailQuote] = useState<Quote | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>((location.state as { highlightId?: string } | null)?.highlightId ?? null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState('')
@@ -371,7 +372,7 @@ export default function PedidosVendaPage() {
                 </button>
 
                 <button
-                  onClick={() => handleSendEmail(q)}
+                  onClick={() => setConfirmEmailQuote(q)}
                   disabled={!clients.find(c => c.id === q.client_id)?.email}
                   title={!clients.find(c => c.id === q.client_id)?.email ? 'Cliente sem e-mail cadastrado' : undefined}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-30"
@@ -440,6 +441,15 @@ export default function PedidosVendaPage() {
         danger
         onConfirm={doDelete}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmModal
+        open={confirmEmailQuote !== null}
+        title="Enviar por e-mail?"
+        message={`Será enviado o pedido para ${clients.find(c => c.id === confirmEmailQuote?.client_id)?.email ?? ''}. Confirmar?`}
+        confirmLabel="Sim, enviar"
+        onConfirm={() => { const q = confirmEmailQuote; setConfirmEmailQuote(null); if (q) handleSendEmail(q) }}
+        onCancel={() => setConfirmEmailQuote(null)}
       />
 
       <QuoteFormModal

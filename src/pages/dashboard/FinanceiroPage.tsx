@@ -55,9 +55,10 @@ function StatCard({ label, value, sub, accent, tone = 'default', onClick }: Card
   )
 }
 
-// Quotes que geram faturamento direto (receita reconhecida pela venda):
-// - Exclui Personalizado — a receita entra pelos pagamentos do cliente (ClientPayment)
+// Quotes que geram faturamento (receita reconhecida pela venda).
+// Faturado Gradual é incluído diretamente pelo total do orçamento no momento do faturamento.
 function isFaturadoQuote(q: Quote) {
+  if (q.status === 'Faturado Gradual') return true
   if (q.payment_type === 'Personalizado') return false
   if (q.status === 'Entregue/Faturado') return true
   return q.status === 'Faturado' || q.status === 'Entregue'

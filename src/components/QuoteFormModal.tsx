@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { createProduct, updatePrice } from '../api/client'
+import { useRef, useState, useEffect } from 'react'
+import { createProduct, updatePrice, updateStock } from '../api/client'
 import type { Client, Product } from '../types'
 import { ConfirmModal } from './ConfirmModal'
 
@@ -26,6 +26,16 @@ export interface QuoteFormPayload {
   notes?: string
   payment_type?: string
   installments?: number
+  discount_type?: string
+  discount_value?: number
+}
+
+export interface QuoteFormInitialData {
+  clientId: string
+  clientName: string
+  cart: CartEntry[]
+  discountType: '%' | 'R$' | ''
+  discountValue: string
 }
 
 interface Props {
@@ -38,14 +48,17 @@ interface Props {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>
   onSubmit: (payload: QuoteFormPayload) => Promise<void>
   onClose: () => void
+  initialData?: QuoteFormInitialData
 }
 
-export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients, products, setProducts, onSubmit, onClose }: Props) {
+export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients, products, setProducts, onSubmit, onClose, initialData }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
   const [confirmClose, setConfirmClose] = useState(false)
   const [paymentType, setPaymentType] = useState('')
   const [installments, setInstallments] = useState(1)
+  const [discountType, setDiscountType] = useState<'%' | 'R$' | ''>('')
+  const [discountValue, setDiscountValue] = useState('')
 
   // cliente
   const [selectedClient, setSelectedClient] = useState('')
@@ -72,6 +85,20 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const priceInputRef = useRef<HTMLInputElement>(null)
 
   const [stockWarning, setStockWarning] = useState('')
+  const [stockInputProduct, setStockInputProduct] = useState<Product | null>(null)
+  const [stockInputValue, setStockInputValue] = useState('')
+  const [savingStock, setSavingStock] = useState(false)
+
+  useEffect(() => {
+    if (open && initialData) {
+      setSelectedClient(initialData.clientId)
+      setClientSearch(initialData.clientName)
+      setCart(initialData.cart)
+      setDiscountType(initialData.discountType)
+      setDiscountValue(initialData.discountValue)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   if (!open) return null
 
@@ -93,8 +120,9 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
 
   const selectProduct = (prod: Product) => {
     if (!prod.is_kit && prod.stock_quantity === 0) {
-      setStockWarning(`"${prod.name}" está sem estoque e não pode ser adicionado.`)
-      setProdSearch(''); setProdOpen(false)
+      setStockInputProduct(prod)
+      setStockInputValue('')
+      setProdSearch(''); setProdOpen(false); setStockWarning('')
       return
     }
     setStockWarning('')
@@ -104,6 +132,28 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
       return [...prev, { product_id: prod.id, product_name: prod.name, price: prod.price, quantity: 1 }]
     })
     setProdSearch(''); setProdOpen(false)
+  }
+
+  const handleAddStockAndProduct = async () => {
+    if (!stockInputProduct) return
+    const qty = parseInt(stockInputValue, 10)
+    if (isNaN(qty) || qty <= 0) return
+    setSavingStock(true)
+    try {
+      await updateStock(stockInputProduct.id, qty)
+      setProducts(prev => prev.map(p => p.id === stockInputProduct.id ? { ...p, stock_quantity: qty } : p))
+      setCart(prev => {
+        const ex = prev.find(e => e.product_id === stockInputProduct.id)
+        if (ex) return prev.map(e => e.product_id === stockInputProduct.id ? { ...e, quantity: e.quantity + 1 } : e)
+        return [...prev, { product_id: stockInputProduct.id, product_name: stockInputProduct.name, price: stockInputProduct.price, quantity: 1 }]
+      })
+      setStockInputProduct(null)
+    } catch {
+      setStockWarning('Erro ao atualizar estoque. Tente novamente.')
+      setStockInputProduct(null)
+    } finally {
+      setSavingStock(false)
+    }
   }
 
   const openNewProd = () => {
@@ -158,7 +208,14 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
     setEditingPriceId(null)
   }
 
-  const cartTotal = cart.reduce((s, e) => s + e.price * e.quantity, 0)
+  const cartSubtotal = cart.reduce((s, e) => s + e.price * e.quantity, 0)
+  const discountNum = parseFloat(discountValue.replace(',', '.')) || 0
+  const discountAmount = discountType === '%'
+    ? cartSubtotal * discountNum / 100
+    : discountType === 'R$'
+    ? Math.min(discountNum, cartSubtotal)
+    : 0
+  const cartTotal = cartSubtotal - discountAmount
 
   // ── Modal ─────────────────────────────────────────────────────────────────────
 
@@ -169,6 +226,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
     setProdSearch(''); setShowNewProd(false); setNewProd(EMPTY_NEW_PROD)
     setEditingPriceId(null); setError(''); setStockWarning('')
     setPaymentType(''); setInstallments(1)
+    setDiscountType(''); setDiscountValue('')
   }
 
   const requestClose = () => {
@@ -188,6 +246,8 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
         notes,
         payment_type: paymentType || undefined,
         installments: paymentType === 'Cartão de Crédito' ? installments : undefined,
+        discount_type: discountType || undefined,
+        discount_value: discountType && discountNum > 0 ? discountNum : undefined,
       })
       resetModal(); onClose()
     } catch (e: unknown) {
@@ -298,6 +358,39 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
               </div>
               {stockWarning && (
                 <p className="text-xs text-red-400 mt-1">{stockWarning}</p>
+              )}
+              {stockInputProduct && (
+                <div className="mt-2 bg-[#141414] border border-amber-500/25 rounded-xl p-3.5 space-y-2">
+                  <p className="text-xs text-amber-400 font-medium">
+                    "{stockInputProduct.name}" está sem estoque.
+                  </p>
+                  <p className="text-xs text-gray-500">Informe quantas unidades adicionar ao estoque antes de incluir no pedido:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={stockInputValue}
+                      onChange={e => setStockInputValue(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAddStockAndProduct()}
+                      placeholder="Ex: 5"
+                      autoFocus
+                      className="flex-1 bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40"
+                    />
+                    <button
+                      onClick={handleAddStockAndProduct}
+                      disabled={savingStock || !stockInputValue || parseInt(stockInputValue, 10) <= 0}
+                      className="px-4 py-2 bg-[#28AEA4] text-white rounded-lg text-sm font-semibold hover:bg-[#1d9992] disabled:opacity-40 transition-colors"
+                    >
+                      {savingStock ? '…' : 'Adicionar'}
+                    </button>
+                    <button
+                      onClick={() => setStockInputProduct(null)}
+                      className="px-3 py-2 bg-[#1a1a1a] border border-[#272727] text-gray-500 rounded-lg text-sm hover:text-white transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* ── Formulário novo produto (inline) ── */}
@@ -424,9 +517,50 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                     )}
                   </div>
                 ))}
-                <div className="pt-2 border-t border-[#1c1c1c] flex justify-between">
-                  <span className="text-gray-500 text-sm">Total</span>
-                  <span className="text-[#28AEA4] font-bold">{fmt(cartTotal)}</span>
+                <div className="pt-2 border-t border-[#1c1c1c] space-y-1.5">
+                  {/* Desconto */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 text-xs flex-shrink-0">Desconto</span>
+                    <div className="flex gap-1 ml-auto">
+                      {(['%', 'R$'] as const).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => { setDiscountType(discountType === t ? '' : t); setDiscountValue('') }}
+                          className={`px-2 py-0.5 rounded text-xs font-medium border transition-colors ${discountType === t ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-[#1c1c1c] text-gray-500 border-[#2a2a2a] hover:text-gray-300'}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    {discountType && (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={discountValue}
+                        onChange={e => setDiscountValue(e.target.value)}
+                        placeholder="0"
+                        className="w-20 bg-[#1c1c1c] border border-[#28AEA4]/30 text-white rounded-lg px-2 py-1 text-xs focus:outline-none"
+                      />
+                    )}
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Subtotal</span>
+                      <span className="text-gray-400">{fmt(cartSubtotal)}</span>
+                    </div>
+                  )}
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-amber-400">Desconto</span>
+                      <span className="text-amber-400">− {fmt(discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 text-sm">Total</span>
+                    <span className="text-[#28AEA4] font-bold">{fmt(cartTotal)}</span>
+                  </div>
                 </div>
               </div>
             )}

@@ -203,10 +203,6 @@ export async function sharePriceTableWhatsApp(products: Product[], brandLabel: s
   link.download = fileName
   link.click()
   URL.revokeObjectURL(blobUrl)
-
-  setTimeout(() => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
-  }, 600)
 }
 
 export interface SendResult { ok: Client[]; failed: { client: Client; error: string }[] }
@@ -231,8 +227,7 @@ export async function sendPriceTableEmailToMany(products: Product[], brandLabel:
   return result
 }
 
-// Gera a tabela uma única vez, baixa o arquivo e abre uma conversa de WhatsApp por cliente
-// (o vendedor anexa o PDF já baixado em cada conversa).
+// Gera a tabela uma única vez e baixa o arquivo para o vendedor enviar manualmente pelo WhatsApp.
 export async function sharePriceTableWhatsAppToMany(products: Product[], brandLabel: string, recipients: Client[]): Promise<void> {
   const pdfBlob = await generatePDFBlob(products, brandLabel)
   const fileName = `tabela-precos-${slug(brandLabel)}.pdf`
@@ -243,13 +238,4 @@ export async function sharePriceTableWhatsAppToMany(products: Product[], brandLa
   link.download = fileName
   link.click()
   URL.revokeObjectURL(blobUrl)
-
-  recipients.forEach((client, i) => {
-    const message = `Olá, ${client.name}! Segue a tabela de preços de ${brandLabel} (arquivo já baixado, só anexar aqui).`
-    const phone = client.phone?.replace(/\D/g, '') ?? ''
-    const waUrl = phone
-      ? `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`
-    setTimeout(() => window.open(waUrl, '_blank'), 600 + i * 300)
-  })
 }

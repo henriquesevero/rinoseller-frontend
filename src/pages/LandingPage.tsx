@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 function IconChart() {
   return (
@@ -188,9 +189,15 @@ const HERO_LINES = ['Venda mais.', 'Controle tudo.']
 const HERO_FULL  = HERO_LINES.join('\n')
 
 export function LandingPage() {
+  const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [typed,   setTyped]   = useState('')
   const [cursorOn, setCursorOn] = useState(true)
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/dashboard', { replace: true })
+  }, [isAuthenticated, navigate])
 
   useEffect(() => {
     if (typed.length >= HERO_FULL.length) return

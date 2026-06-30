@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   approveQuote, cancelQuote, createQuote, deleteQuote,
-  getClients, getProducts, getQuotes,
+  getClients, getProducts, getQuotes, updateQuoteItems,
 } from '../../api/client'
 import type { Client, Product, Quote, QuoteStatus } from '../../types'
 import { downloadQuotePDF, sendQuoteByEmail, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
@@ -62,6 +62,8 @@ export default function OrcamentosPage() {
   const [highlightId, setHighlightId] = useState<string | null>((location.state as { highlightId?: string } | null)?.highlightId ?? null)
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmEmailQuote, setConfirmEmailQuote] = useState<Quote | null>(null)
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState('')
 
@@ -251,8 +253,9 @@ export default function OrcamentosPage() {
               </div>
               {/* Ações de status */}
               {q.status === 'Aguardando Aprovação' && (
-                <div className="mt-3 pt-3 border-t border-[#1c1c1c] flex gap-2">
+                <div className="mt-3 pt-3 border-t border-[#1c1c1c] flex gap-2 flex-wrap">
                   <button onClick={() => handleApprove(q.id)} className="px-3.5 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition-colors">Aprovar</button>
+                  <button onClick={() => setEditingQuote(q)}  className="px-3.5 py-1.5 bg-[#28AEA4]/10 border border-[#28AEA4]/20 text-[#28AEA4] rounded-lg text-xs font-medium hover:bg-[#28AEA4]/20 transition-colors">✎ Editar</button>
                   <button onClick={() => handleCancel(q.id)}  className="px-3.5 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-medium hover:bg-red-500/20 transition-colors">Cancelar</button>
                 </div>
               )}
@@ -280,7 +283,7 @@ export default function OrcamentosPage() {
                   WhatsApp
                 </button>
                 <button
-                  onClick={() => handleSendEmail(q)}
+                  onClick={() => setConfirmEmailQuote(q)}
                   disabled={!clients.find(c => c.id === q.client_id)?.email}
                   title={!clients.find(c => c.id === q.client_id)?.email ? 'Cliente sem e-mail cadastrado' : undefined}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-30"
@@ -326,6 +329,15 @@ export default function OrcamentosPage() {
         onCancel={() => setConfirmDelete(null)}
       />
 
+      <ConfirmModal
+        open={confirmEmailQuote !== null}
+        title="Enviar por e-mail?"
+        message={`Será enviado o orçamento para ${clients.find(c => c.id === confirmEmailQuote?.client_id)?.email ?? ''}. Confirmar?`}
+        confirmLabel="Sim, enviar"
+        onConfirm={() => { const q = confirmEmailQuote; setConfirmEmailQuote(null); if (q) handleSendEmail(q) }}
+        onCancel={() => setConfirmEmailQuote(null)}
+      />
+
       <QuoteFormModal
         open={showModal}
         title="Novo Orçamento"
@@ -337,6 +349,41 @@ export default function OrcamentosPage() {
         onSubmit={handleCreate}
         onClose={() => setShowModal(false)}
       />
+
+      {editingQuote && (
+        <QuoteFormModal
+          key={editingQuote.id}
+          open
+          title="Editar Orçamento"
+          submitLabel="Salvar alterações"
+          savingLabel="Salvando…"
+          clients={clients}
+          products={products}
+          setProducts={setProducts}
+          initialData={{
+            clientId: editingQuote.client_id,
+            clientName: editingQuote.client_name,
+            cart: editingQuote.items.map(it => ({
+              product_id: it.product_id,
+              product_name: it.product_name,
+              price: it.unit_price,
+              quantity: it.quantity,
+            })),
+            discountType: (editingQuote.discount_type as '%' | 'R$' | '') || '',
+            discountValue: editingQuote.discount_value ? String(editingQuote.discount_value) : '',
+          }}
+          onSubmit={async (payload) => {
+            await updateQuoteItems(editingQuote.id, {
+              client_id: payload.client_id,
+              items: payload.items,
+              discount_type: payload.discount_type,
+              discount_value: payload.discount_value,
+            })
+            await load()
+          }}
+          onClose={() => setEditingQuote(null)}
+        />
+      )}
     </div>
   )
 }
