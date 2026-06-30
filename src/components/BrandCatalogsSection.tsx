@@ -69,6 +69,7 @@ function SendCatalogModal({ catalog, clients, onClose }: SendCatalogModalProps) 
   const [selected, setSelected] = useState<Client[]>([])
   const [sending, setSending] = useState<'whatsapp' | 'email' | null>(null)
   const [feedback, setFeedback] = useState('')
+  const [confirmEmail, setConfirmEmail] = useState(false)
 
   const filtered = search.trim().length > 0
     ? clients.filter(c =>
@@ -194,13 +195,25 @@ function SendCatalogModal({ catalog, clients, onClose }: SendCatalogModalProps) 
                 {sending === 'whatsapp' ? 'Abrindo…' : `📱 WhatsApp${withPhone.length > 1 ? ` (${withPhone.length})` : ''}`}
               </button>
               <button
-                onClick={sendEmail}
+                onClick={() => setConfirmEmail(true)}
                 disabled={withEmail.length === 0 || sending !== null}
                 title={withEmail.length === 0 ? 'Nenhum cliente selecionado tem e-mail cadastrado' : undefined}
                 className="flex-1 py-2.5 bg-[#111111] hover:bg-[#161616] text-white border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-xl text-sm font-semibold disabled:opacity-30 transition-all"
               >
                 {sending === 'email' ? 'Enviando…' : `✉ E-mail${withEmail.length > 1 ? ` (${withEmail.length})` : ''}`}
               </button>
+            </div>
+          )}
+
+          {confirmEmail && (
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 space-y-2">
+              <p className="text-xs text-gray-300">
+                Enviar catálogo para {withEmail.map(c => c.name).join(', ')}?
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmEmail(false)} className="flex-1 py-1.5 border border-[#2a2a2a] text-gray-400 rounded-lg text-xs">Cancelar</button>
+                <button onClick={() => { setConfirmEmail(false); sendEmail() }} className="flex-1 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-semibold">Sim, enviar</button>
+              </div>
             </div>
           )}
         </div>
