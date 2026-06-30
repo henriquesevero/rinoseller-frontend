@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { addBrandCatalog, deleteBrandCatalog, getBrandCatalogs, getClients } from '../api/client'
+import { addBrandCatalog, deleteBrandCatalog, getBrandCatalogs, getClients, sendDocumentEmail } from '../api/client'
 import type { BrandCatalog, Client } from '../types'
 import { ConfirmModal } from './ConfirmModal'
 
@@ -67,6 +67,8 @@ function ModalThumb({ driveUrl }: { driveUrl: string }) {
 function SendCatalogModal({ catalog, clients, onClose }: SendCatalogModalProps) {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Client[]>([])
+  const [sending, setSending] = useState<'whatsapp' | 'email' | null>(null)
+  const [feedback, setFeedback] = useState('')
 
   const filtered = search.trim().length > 0
     ? clients.filter(c =>
@@ -75,33 +77,41 @@ function SendCatalogModal({ catalog, clients, onClose }: SendCatalogModalProps) 
       )
     : []
 
-  const addClient = (c: Client) => {
-    setSelected(prev => [...prev, c])
-    setSearch('')
-  }
-
-  const removeClient = (id: string) => {
-    setSelected(prev => prev.filter(c => c.id !== id))
-  }
+  const addClient = (c: Client) => { setSelected(prev => [...prev, c]); setSearch('') }
+  const removeClient = (id: string) => setSelected(prev => prev.filter(c => c.id !== id))
 
   const withPhone = selected.filter(c => c.phone)
   const withEmail = selected.filter(c => c.email)
   const shareUrl = `${window.location.origin}/c/${catalog.id}`
 
   const sendWhatsApp = () => {
-    withPhone.forEach(client => {
-      const msg = `Olá ${client.name}! Segue o catálogo da ${catalog.brand_name}:\n${shareUrl}`
-      window.open(`https://wa.me/55${client.phone}?text=${encodeURIComponent(msg)}`, '_blank')
+    setSending('whatsapp')
+    withPhone.forEach((client, i) => {
+      const msg = `Olá, ${client.name}! Segue o catálogo da ${catalog.brand_name}:\n${shareUrl}`
+      const phone = client.phone.replace(/\D/g, '')
+      setTimeout(() => window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank'), i * 400)
     })
-    onClose()
+    setTimeout(onClose, withPhone.length * 400 + 200)
   }
 
-  const sendEmail = () => {
+  const sendEmail = async () => {
+    setSending('email'); setFeedback('')
     const subject = `Catálogo ${catalog.brand_name}`
-    const body = `Segue o catálogo da ${catalog.brand_name}:\n${shareUrl}`
-    const to = withEmail.map(c => c.email).join(',')
-    window.open(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
-    onClose()
+    const message = `Segue o catálogo da ${catalog.brand_name}:\n\n${shareUrl}`
+    const failed: string[] = []
+    for (const client of withEmail) {
+      try {
+        await sendDocumentEmail(client.id, { subject, message })
+      } catch {
+        failed.push(client.name)
+      }
+    }
+    setSending(null)
+    if (failed.length === 0) {
+      onClose()
+    } else {
+      setFeedback(`Falhou para: ${failed.join(', ')}.`)
+    }
   }
 
   return (
@@ -171,23 +181,25 @@ function SendCatalogModal({ catalog, clients, onClose }: SendCatalogModalProps) 
             )}
           </div>
 
+          {feedback && <p className="text-xs text-amber-400">{feedback}</p>}
+
           {selected.length > 0 && (
             <div className="flex gap-2 pt-1">
               <button
                 onClick={sendWhatsApp}
-                disabled={withPhone.length === 0}
+                disabled={withPhone.length === 0 || sending !== null}
                 title={withPhone.length === 0 ? 'Nenhum cliente selecionado tem telefone cadastrado' : undefined}
                 className="flex-1 py-2.5 bg-[#111111] hover:bg-[#161616] text-white border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-xl text-sm font-semibold disabled:opacity-30 transition-all"
               >
-                📱 WhatsApp{withPhone.length > 1 ? ` (${withPhone.length})` : ''}
+                {sending === 'whatsapp' ? 'Abrindo…' : `📱 WhatsApp${withPhone.length > 1 ? ` (${withPhone.length})` : ''}`}
               </button>
               <button
                 onClick={sendEmail}
-                disabled={withEmail.length === 0}
+                disabled={withEmail.length === 0 || sending !== null}
                 title={withEmail.length === 0 ? 'Nenhum cliente selecionado tem e-mail cadastrado' : undefined}
                 className="flex-1 py-2.5 bg-[#111111] hover:bg-[#161616] text-white border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-xl text-sm font-semibold disabled:opacity-30 transition-all"
               >
-                ✉ E-mail{withEmail.length > 1 ? ` (${withEmail.length})` : ''}
+                {sending === 'email' ? 'Enviando…' : `✉ E-mail${withEmail.length > 1 ? ` (${withEmail.length})` : ''}`}
               </button>
             </div>
           )}

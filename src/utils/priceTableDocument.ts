@@ -227,15 +227,45 @@ export async function sendPriceTableEmailToMany(products: Product[], brandLabel:
   return result
 }
 
-// Gera a tabela uma única vez e baixa o arquivo para o vendedor enviar manualmente pelo WhatsApp.
+// Gera a tabela, baixa o PDF e abre o WhatsApp Web para cada cliente selecionado.
 export async function sharePriceTableWhatsAppToMany(products: Product[], brandLabel: string, recipients: Client[]): Promise<void> {
   const pdfBlob = await generatePDFBlob(products, brandLabel)
   const fileName = `tabela-precos-${slug(brandLabel)}.pdf`
 
+  const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
+
+  // Mobile: Web Share API com arquivo (deixa o usuário escolher o contato no WhatsApp)
+  if (
+    navigator.share &&
+    typeof navigator.canShare === 'function' &&
+    navigator.canShare({ files: [pdfFile] })
+  ) {
+    try {
+      await navigator.share({
+        title: `Tabela de Preços — ${brandLabel}`,
+        text: `Segue a tabela de preços de ${brandLabel}.`,
+        files: [pdfFile],
+      })
+      return
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
+    }
+  }
+
+  // Desktop: baixa o PDF e abre WhatsApp Web por cliente com mensagem pré-preenchida
   const blobUrl = URL.createObjectURL(pdfBlob)
   const link    = document.createElement('a')
   link.href     = blobUrl
   link.download = fileName
   link.click()
   URL.revokeObjectURL(blobUrl)
+
+  recipients.forEach((client, i) => {
+    const phone = client.phone?.replace(/\D/g, '') ?? ''
+    const msg   = `Olá, ${client.name}! Segue a tabela de preços de ${brandLabel} (arquivo já baixado, é só anexar aqui).`
+    const waUrl = phone
+      ? `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`
+    setTimeout(() => window.open(waUrl, '_blank'), 600 + i * 400)
+  })
 }
