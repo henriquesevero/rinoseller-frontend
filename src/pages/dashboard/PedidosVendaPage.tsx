@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { getQuotes, getClients, getProducts, createQuote, approveQuote, deliverQuote, invoiceQuote, deleteQuote, getAllPayments } from '../../api/client'
+import { getQuotes, getClients, getProducts, createQuote, approveQuote, deliverQuote, invoiceQuote, deleteQuote, getAllPayments, updateQuoteItems } from '../../api/client'
 import { downloadQuotePDF, sendQuoteByEmail, shareQuoteOnWhatsApp } from '../../utils/quoteDocument'
 import { withMinDuration } from '../../utils/loading'
 import type { Quote, Client, Product, ClientPayment } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { LoadingOverlay } from '../../components/LoadingOverlay'
-import { QuoteFormModal, type QuoteFormPayload } from '../../components/QuoteFormModal'
+import { QuoteFormModal, type QuoteFormPayload, type QuoteFormInitialData } from '../../components/QuoteFormModal'
 import { useSettings } from '../../contexts/SettingsContext'
 
 const STATUS_COLORS_DARK: Record<string, string> = {
@@ -57,6 +57,7 @@ export default function PedidosVendaPage() {
   const [confirmInvoice, setConfirmInvoice] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete]   = useState<string | null>(null)
   const [confirmEmailQuote, setConfirmEmailQuote] = useState<Quote | null>(null)
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>((location.state as { highlightId?: string } | null)?.highlightId ?? null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState('')
@@ -319,6 +320,17 @@ export default function PedidosVendaPage() {
               {/* Actions */}
               <div className="mt-3 pt-3 border-t border-[#1c1c1c] flex flex-wrap items-center gap-2">
 
+                {/* Editar pedido */}
+                <button
+                  onClick={() => setEditingQuote(q)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#28AEA4]/10 border border-[#28AEA4]/20 text-[#28AEA4] rounded-lg text-xs font-medium hover:bg-[#28AEA4]/20 transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Editar
+                </button>
+
                 {/* Aprovado → Faturar */}
                 {q.status === 'Aprovado' && (
                   <button
@@ -468,6 +480,41 @@ export default function PedidosVendaPage() {
         onSubmit={handleCreate}
         onClose={() => setShowModal(false)}
       />
+
+      {editingQuote && (
+        <QuoteFormModal
+          key={editingQuote.id}
+          open
+          title="Editar Pedido"
+          submitLabel="Salvar alterações"
+          savingLabel="Salvando…"
+          clients={clients}
+          products={products}
+          setProducts={setProducts}
+          initialData={{
+            clientId: editingQuote.client_id,
+            clientName: editingQuote.client_name,
+            cart: editingQuote.items.map(it => ({
+              product_id: it.product_id,
+              product_name: it.product_name,
+              price: it.unit_price,
+              quantity: it.quantity,
+            })),
+            discountType: (editingQuote.discount_type as '%' | 'R$' | '') || '',
+            discountValue: editingQuote.discount_value ? String(editingQuote.discount_value) : '',
+          } satisfies QuoteFormInitialData}
+          onSubmit={async (payload) => {
+            await updateQuoteItems(editingQuote.id, {
+              client_id: payload.client_id,
+              items: payload.items,
+              discount_type: payload.discount_type,
+              discount_value: payload.discount_value,
+            })
+            await load()
+          }}
+          onClose={() => setEditingQuote(null)}
+        />
+      )}
     </div>
   )
 }
