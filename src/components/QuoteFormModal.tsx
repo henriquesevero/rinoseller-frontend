@@ -136,6 +136,11 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
       setProdSearch(''); setProdOpen(false); setStockWarning('')
       return
     }
+    const existingQty = cart.find(e => e.product_id === prod.id)?.quantity ?? 0
+    if (!prod.is_kit && existingQty + 1 > prod.stock_quantity) {
+      setStockWarning(`Estoque insuficiente: apenas ${prod.stock_quantity} unidade(s) de "${prod.name}" disponível(eis).`)
+      return
+    }
     setStockWarning('')
     setCart(prev => {
       const ex = prev.find(e => e.product_id === prod.id)
@@ -228,8 +233,10 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   // ── Handlers — carrinho ───────────────────────────────────────────────────────
 
   const updateQty = (id: string, qty: number) => {
-    if (qty <= 0) setCart(prev => prev.filter(e => e.product_id !== id))
-    else setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: qty } : e))
+    if (qty <= 0) { setCart(prev => prev.filter(e => e.product_id !== id)); return }
+    const prod = products.find(p => p.id === id)
+    const clamped = prod && !prod.is_kit ? Math.min(qty, prod.stock_quantity) : qty
+    setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: clamped } : e))
   }
 
   const startEditPrice = (id: string, currentPrice: number) => {
