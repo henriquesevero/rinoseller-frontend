@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Mirra Cosméticos',
-        short_name: 'Mirra',
-        description: 'Sistema de gestão para vendedores Mirra Cosméticos',
+        name: 'RinoSeller',
+        short_name: 'RinoSeller',
+        description: 'Portal de gestão para vendedores e distribuidores RinoSeller',
         theme_color: '#28AEA4',
         background_color: '#0f0f0f',
         display: 'standalone',
