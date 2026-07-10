@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { createProduct, updatePrice, updateStock } from '../api/client'
 import type { Client, Product, KitItem } from '../types'
 import { ConfirmModal } from './ConfirmModal'
+import { searchByText } from '../utils/search'
 
 const CATEGORIES = ['Químicos', 'Lavatório', 'Finalizadores', 'Acessórios', 'Tratamentos']
 const EMPTY_NEW_PROD = { name: '', category: 'Químicos', price: '', cost_price: '', stock_quantity: '0' }
@@ -116,15 +117,17 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
     : []
 
   const filteredProducts = prodSearch.trim().length > 0
-    ? products.filter(p => p.name.toLowerCase().includes(prodSearch.toLowerCase()))
+    ? searchByText(products, prodSearch, p => p.name)
     : []
 
   const newProdKitSearchResults = newProdKitSearch.trim()
-    ? products
-        .filter(p => !p.is_kit)
-        .filter(p => p.name.toLowerCase().includes(newProdKitSearch.toLowerCase()))
-        .filter(p => !newProdKitItems.some(i => i.product_id === p.id))
-        .slice(0, 8)
+    ? searchByText(
+        products
+          .filter(p => !p.is_kit)
+          .filter(p => !newProdKitItems.some(i => i.product_id === p.id)),
+        newProdKitSearch,
+        p => p.name
+      ).slice(0, 8)
     : []
 
   // ── Handlers — cliente ────────────────────────────────────────────────────────

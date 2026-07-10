@@ -3,6 +3,7 @@ import { getProducts, createProduct, updatePrice, updateCostPrice, updateStock, 
 import type { Product, KitItem } from '../../types'
 import { ConfirmModal } from '../../components/ConfirmModal'
 import { exportProductsPDF } from '../../utils/productDocument'
+import { searchByText } from '../../utils/search'
 
 function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -405,11 +406,14 @@ export function ProdutosPage() {
   const countLowStock = products.filter(p => isLowOrZero(p) === 'baixo').length
   const countZerado   = products.filter(p => isLowOrZero(p) === 'zerado').length
 
-  const filtered = products
-    .filter(p => filterCat === 'Todos' || p.category === filterCat)
-    .filter(p => filterBrand === 'Todas' || p.brand === filterBrand)
-    .filter(p => !onlyLowStock || isLowOrZero(p) !== null)
-    .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = searchByText(
+    products
+      .filter(p => filterCat === 'Todos' || p.category === filterCat)
+      .filter(p => filterBrand === 'Todas' || p.brand === filterBrand)
+      .filter(p => !onlyLowStock || isLowOrZero(p) !== null),
+    search,
+    p => p.name
+  )
 
   const exportScopeLabel = filterBrand === 'Todas' ? 'Total' : filterBrand
   const exportList = filterBrand === 'Todas' ? products : products.filter(p => p.brand === filterBrand)
@@ -427,11 +431,13 @@ export function ProdutosPage() {
   const validImport = importRows.filter(r => !r.error)
 
   const kitSearchResults = kitSearch.trim()
-    ? products
-        .filter(p => !p.is_kit)
-        .filter(p => p.name.toLowerCase().includes(kitSearch.toLowerCase()))
-        .filter(p => !kitItems.some(i => i.product_id === p.id))
-        .slice(0, 8)
+    ? searchByText(
+        products
+          .filter(p => !p.is_kit)
+          .filter(p => !kitItems.some(i => i.product_id === p.id)),
+        kitSearch,
+        p => p.name
+      ).slice(0, 8)
     : []
 
   return (
