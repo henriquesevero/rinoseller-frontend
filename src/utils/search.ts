@@ -1,8 +1,8 @@
 // Smart product search: matches any word (first, middle, last), ignores accents/case/punctuation,
 // and tolerates typos/malformed names via a small edit-distance budget.
 
-function normalize(text: string): string {
-  return text
+function normalize(text: string | null | undefined): string {
+  return (text ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
@@ -10,7 +10,7 @@ function normalize(text: string): string {
     .trim()
 }
 
-function tokenize(text: string): string[] {
+function tokenize(text: string | null | undefined): string[] {
   const n = normalize(text)
   return n ? n.split(' ') : []
 }
@@ -58,7 +58,7 @@ function tokenMatchScore(queryToken: string, nameToken: string): number {
  * Every whitespace-separated word in the query must match some word in the
  * text (in any order), so "azul camisa" matches "Camisa Polo Azul M".
  */
-export function matchText(text: string, query: string): { matches: boolean; score: number } {
+export function matchText(text: string | null | undefined, query: string): { matches: boolean; score: number } {
   const queryTokens = tokenize(query)
   if (queryTokens.length === 0) return { matches: true, score: 0 }
 
@@ -81,7 +81,7 @@ export function matchText(text: string, query: string): { matches: boolean; scor
  * Best matches come first. Returns `items` unchanged (in original order)
  * when the query is empty.
  */
-export function searchByText<T>(items: T[], query: string, getText: (item: T) => string): T[] {
+export function searchByText<T>(items: T[], query: string, getText: (item: T) => string | null | undefined): T[] {
   const q = query.trim()
   if (!q) return items
 

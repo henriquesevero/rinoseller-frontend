@@ -102,7 +102,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   useEffect(() => {
     if (open && initialData) {
       setSelectedClient(initialData.clientId)
-      setClientSearch(initialData.clientName)
+      setClientSearch(initialData.clientName ?? '')
       setCart(initialData.cart)
       setDiscountType(initialData.discountType)
       setDiscountValue(initialData.discountValue)
@@ -112,8 +112,8 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
 
   if (!open) return null
 
-  const filteredClients  = clientSearch.trim().length > 0
-    ? clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+  const filteredClients = clientSearch.trim().length > 0
+    ? searchByText(clients, clientSearch, c => c.name)
     : []
 
   const filteredProducts = prodSearch.trim().length > 0
