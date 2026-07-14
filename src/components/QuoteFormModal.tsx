@@ -110,6 +110,15 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
+  useEffect(() => {
+    if (!newProdIsKit) return
+    const sum = newProdKitItems.reduce((s, item) => {
+      const prod = products.find(p => p.id === item.product_id)
+      return s + (prod ? prod.price * item.quantity : 0)
+    }, 0)
+    setNewProd(p => ({ ...p, price: sum > 0 ? sum.toFixed(2) : '' }))
+  }, [newProdIsKit, newProdKitItems, products])
+
   if (!open) return null
 
   const filteredClients = clientSearch.trim().length > 0
@@ -249,15 +258,6 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const removeNewProdKitItem = (productId: string) => {
     setNewProdKitItems(items => items.filter(i => i.product_id !== productId))
   }
-
-  useEffect(() => {
-    if (!newProdIsKit) return
-    const sum = newProdKitItems.reduce((s, item) => {
-      const prod = products.find(p => p.id === item.product_id)
-      return s + (prod ? prod.price * item.quantity : 0)
-    }, 0)
-    setNewProd(p => ({ ...p, price: sum > 0 ? sum.toFixed(2) : '' }))
-  }, [newProdIsKit, newProdKitItems, products])
 
   const handleCreateProduct = async () => {
     if (!newProd.name || !newProd.price) { setNewProdError('Nome e preço são obrigatórios'); return }
