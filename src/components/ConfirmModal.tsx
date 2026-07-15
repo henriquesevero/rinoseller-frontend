@@ -11,7 +11,7 @@ interface Props {
 export function ConfirmModal({ open, title, message, confirmLabel = 'Confirmar', danger = false, onConfirm, onCancel }: Props) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/70 z-[60] flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/70 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl w-full max-w-sm shadow-[0_8px_40px_rgba(0,0,0,0.18)] overflow-hidden">
 
         {/* Content */}
