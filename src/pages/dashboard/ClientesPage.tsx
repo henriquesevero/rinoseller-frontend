@@ -233,7 +233,7 @@ export function ClientesPage() {
       {/* New Client Modal */}
       {showNew && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[#0f0f0f] border border-[#222] rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-[#0f0f0f] border border-[#222] rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#1c1c1c]">
               <h2 className="text-lg font-bold text-white">Novo Cliente</h2>
               <button onClick={() => { setShowNew(false); setForm(EMPTY) }} className="text-gray-600 hover:text-white text-2xl leading-none">×</button>
