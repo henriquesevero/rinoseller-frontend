@@ -9,6 +9,11 @@ function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+// tokens do header de exemplo do CSV de import ("nome;categoria;marca;preço;custo;estoque"),
+// usados tanto para pular a linha de header no import quanto para limpar marcas/categorias
+// que vazaram de imports feitos antes desse guard existir
+const CSV_HEADER_TOKENS = new Set(['nome', 'categoria', 'marca', 'preço', 'preco', 'custo', 'estoque'])
+
 function kitAvailableStock(product: Product, products: Product[]): number {
   if (!product.kit_items || product.kit_items.length === 0) return 0
   return Math.min(...product.kit_items.map(ki => {
@@ -66,7 +71,12 @@ interface CategoryDef { name: string }
 function loadCategories(): CategoryDef[] {
   try {
     const raw = localStorage.getItem('korav_categories')
-    if (raw) return (JSON.parse(raw) as CategoryDef[]).map(c => ({ name: c.name }))
+    if (raw) {
+      const parsed = (JSON.parse(raw) as CategoryDef[]).map(c => ({ name: c.name }))
+      const cleaned = parsed.filter(c => !CSV_HEADER_TOKENS.has(c.name.trim().toLowerCase()))
+      if (cleaned.length !== parsed.length) saveCategories(cleaned)
+      return cleaned
+    }
   } catch { /* ignore */ }
   return []
 }
