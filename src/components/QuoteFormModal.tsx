@@ -92,6 +92,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
 
   const [stockWarning, setStockWarning] = useState('')
   const [stockInputProduct, setStockInputProduct] = useState<Product | null>(null)
+  const [stockInputDesiredQty, setStockInputDesiredQty] = useState(1)
   const [stockInputValue, setStockInputValue] = useState('')
   const [savingStock, setSavingStock] = useState(false)
 
@@ -159,16 +160,13 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   }
 
   const selectProduct = (prod: Product) => {
-    if (!prod.is_kit && prod.stock_quantity === 0) {
-      setStockInputProduct(prod)
-      setStockInputValue('')
-      setProdSearch(''); setProdOpen(false); setStockWarning('')
-      return
-    }
     const existingQty = cart.find(e => e.product_id === prod.id)?.quantity ?? 0
     const desiredQty = existingQty + 1
     if (!prod.is_kit && desiredQty > prod.stock_quantity) {
-      setStockWarning(`Estoque insuficiente: apenas ${prod.stock_quantity} unidade(s) de "${prod.name}" disponível(eis).`)
+      setStockInputProduct(prod)
+      setStockInputDesiredQty(desiredQty)
+      setStockInputValue('')
+      setProdSearch(''); setProdOpen(false); setStockWarning('')
       return
     }
     if (prod.is_kit) {
@@ -217,15 +215,15 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const handleAddStockAndProduct = async () => {
     if (!stockInputProduct) return
     const qty = parseInt(stockInputValue, 10)
-    if (isNaN(qty) || qty <= 0) return
+    if (isNaN(qty) || qty < stockInputDesiredQty) return
     setSavingStock(true)
     try {
       await updateStock(stockInputProduct.id, qty)
       setProducts(prev => prev.map(p => p.id === stockInputProduct.id ? { ...p, stock_quantity: qty } : p))
       setCart(prev => {
         const ex = prev.find(e => e.product_id === stockInputProduct.id)
-        if (ex) return prev.map(e => e.product_id === stockInputProduct.id ? { ...e, quantity: e.quantity + 1 } : e)
-        return [...prev, { product_id: stockInputProduct.id, product_name: stockInputProduct.name, price: stockInputProduct.price, quantity: 1 }]
+        if (ex) return prev.map(e => e.product_id === stockInputProduct.id ? { ...e, quantity: stockInputDesiredQty } : e)
+        return [...prev, { product_id: stockInputProduct.id, product_name: stockInputProduct.name, price: stockInputProduct.price, quantity: stockInputDesiredQty }]
       })
       setStockInputProduct(null)
     } catch {
@@ -292,8 +290,14 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
     const prod = products.find(p => p.id === id)
     if (!prod) { setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: qty } : e)); return }
     if (!prod.is_kit) {
-      const clamped = Math.min(qty, prod.stock_quantity)
-      setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: clamped } : e))
+      if (qty > prod.stock_quantity) {
+        setStockInputProduct(prod)
+        setStockInputDesiredQty(qty)
+        setStockInputValue('')
+        setStockWarning('')
+        return
+      }
+      setCart(prev => prev.map(e => e.product_id === id ? { ...e, quantity: qty } : e))
       return
     }
     const shortages = computeKitShortages(prod, qty)
@@ -479,23 +483,25 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
               {stockInputProduct && (
                 <div className="mt-2 bg-[#141414] border border-amber-500/25 rounded-xl p-3.5 space-y-2">
                   <p className="text-xs text-amber-400 font-medium">
-                    "{stockInputProduct.name}" está sem estoque.
+                    {stockInputProduct.stock_quantity === 0
+                      ? `"${stockInputProduct.name}" está sem estoque.`
+                      : `Estoque insuficiente de "${stockInputProduct.name}": disponível ${stockInputProduct.stock_quantity}, desejado ${stockInputDesiredQty}.`}
                   </p>
-                  <p className="text-xs text-gray-500">Informe quantas unidades adicionar ao estoque antes de incluir no pedido:</p>
+                  <p className="text-xs text-gray-500">Deseja cadastrar estoque agora? Informe a nova quantidade em estoque para continuar com {stockInputDesiredQty} unidade(s):</p>
                   <div className="flex gap-2">
                     <input
                       type="number"
-                      min="1"
+                      min={stockInputDesiredQty}
                       value={stockInputValue}
                       onChange={e => setStockInputValue(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleAddStockAndProduct()}
-                      placeholder="Ex: 5"
+                      placeholder={`Ex: ${stockInputDesiredQty}`}
                       autoFocus
                       className="flex-1 bg-[#1a1a1a] border border-[#272727] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#28AEA4]/40"
                     />
                     <button
                       onClick={handleAddStockAndProduct}
-                      disabled={savingStock || !stockInputValue || parseInt(stockInputValue, 10) <= 0}
+                      disabled={savingStock || !stockInputValue || parseInt(stockInputValue, 10) < stockInputDesiredQty}
                       className="px-4 py-2 bg-[#28AEA4] text-white rounded-lg text-sm font-semibold hover:bg-[#1d9992] disabled:opacity-40 transition-colors"
                     >
                       {savingStock ? '…' : 'Adicionar'}
