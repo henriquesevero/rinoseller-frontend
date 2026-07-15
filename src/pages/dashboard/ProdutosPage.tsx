@@ -325,7 +325,14 @@ export function ProdutosPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       const text = (ev.target?.result as string) ?? ''
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+      let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+      const headerFields = ['nome', 'categoria', 'marca', 'preço', 'preco', 'custo', 'estoque']
+      if (lines.length > 0) {
+        const firstFields = lines[0].split(';').map(f => f.trim().toLowerCase())
+        if (firstFields.every(f => headerFields.includes(f))) {
+          lines = lines.slice(1)
+        }
+      }
       let codeNum = nextCodeNum(products)
       const rows: ImportRow[] = lines.map(line => {
         const parts = line.split(';').map(f => f.trim())
