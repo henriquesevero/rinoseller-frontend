@@ -90,7 +90,12 @@ interface BrandDef { name: string }
 function loadBrands(): BrandDef[] {
   try {
     const raw = localStorage.getItem('korav_brands')
-    if (raw) return (JSON.parse(raw) as BrandDef[]).map(b => ({ name: b.name }))
+    if (raw) {
+      const parsed = (JSON.parse(raw) as BrandDef[]).map(b => ({ name: b.name }))
+      const cleaned = parsed.filter(b => !CSV_HEADER_TOKENS.has(b.name.trim().toLowerCase()))
+      if (cleaned.length !== parsed.length) saveBrands(cleaned)
+      return cleaned
+    }
   } catch { /* ignore */ }
   return []
 }
@@ -336,10 +341,9 @@ export function ProdutosPage() {
     reader.onload = (ev) => {
       const text = (ev.target?.result as string) ?? ''
       let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
-      const headerFields = ['nome', 'categoria', 'marca', 'preço', 'preco', 'custo', 'estoque']
       if (lines.length > 0) {
         const firstFields = lines[0].split(';').map(f => f.trim().toLowerCase())
-        if (firstFields.every(f => headerFields.includes(f))) {
+        if (firstFields.every(f => CSV_HEADER_TOKENS.has(f))) {
           lines = lines.slice(1)
         }
       }
