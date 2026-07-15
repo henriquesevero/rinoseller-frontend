@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 import { createProduct, updatePrice, updateStock } from '../api/client'
 import type { Client, Product, KitItem } from '../types'
 import { ConfirmModal } from './ConfirmModal'
@@ -17,6 +17,60 @@ function nextProductCode(products: Product[]): string {
 
 function fmt(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+interface DropdownStyle { top: number; left: number; width: number; maxHeight: number }
+
+// Posiciona um dropdown de busca com position:fixed usando o visualViewport, que reflete
+// a área realmente visível da tela (exclui o teclado virtual no mobile). Recalcula quando
+// o teclado abre/fecha e inverte para cima do campo quando não há espaço suficiente embaixo.
+function useDropdownPosition(open: boolean, anchorRef: React.RefObject<HTMLElement | null>, preferredMaxHeight: number): DropdownStyle | null {
+  const [style, setStyle] = useState<DropdownStyle | null>(null)
+
+  useLayoutEffect(() => {
+    if (!open) { setStyle(null); return }
+    const update = () => {
+      const el = anchorRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const vv = window.visualViewport
+      const viewportTop = vv?.offsetTop ?? 0
+      const viewportBottom = viewportTop + (vv?.height ?? window.innerHeight)
+      const gap = 6
+      const spaceBelow = viewportBottom - rect.bottom - gap
+      const spaceAbove = rect.top - viewportTop - gap
+      if (spaceBelow >= 120 || spaceBelow >= spaceAbove) {
+        setStyle({
+          top: rect.bottom + gap,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.min(preferredMaxHeight, Math.max(spaceBelow, 80)),
+        })
+      } else {
+        const maxHeight = Math.min(preferredMaxHeight, Math.max(spaceAbove, 80))
+        setStyle({
+          top: Math.max(viewportTop + gap, rect.top - gap - maxHeight),
+          left: rect.left,
+          width: rect.width,
+          maxHeight,
+        })
+      }
+    }
+    update()
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', update)
+    vv?.addEventListener('scroll', update)
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      vv?.removeEventListener('resize', update)
+      vv?.removeEventListener('scroll', update)
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [open, anchorRef, preferredMaxHeight])
+
+  return style
 }
 
 type CartEntry = { product_id: string; product_name: string; price: number; quantity: number }
@@ -67,10 +121,12 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
   const [selectedClient, setSelectedClient] = useState('')
   const [clientSearch, setClientSearch]     = useState('')
   const [clientOpen, setClientOpen]         = useState(false)
+  const clientInputWrapRef = useRef<HTMLDivElement>(null)
 
   // produto search
   const [prodSearch, setProdSearch] = useState('')
   const [prodOpen, setProdOpen]     = useState(false)
+  const prodInputWrapRef = useRef<HTMLDivElement>(null)
 
   // novo produto inline
   const [showNewProd, setShowNewProd]   = useState(false)
@@ -119,6 +175,9 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
     }, 0)
     setNewProd(p => ({ ...p, price: sum > 0 ? sum.toFixed(2) : '' }))
   }, [newProdIsKit, newProdKitItems, products])
+
+  const clientDropdownStyle = useDropdownPosition(clientOpen && clientSearch.trim().length > 0, clientInputWrapRef, 192)
+  const prodDropdownStyle = useDropdownPosition(prodOpen && prodSearch.trim().length > 0, prodInputWrapRef, 256)
 
   if (!open) return null
 
@@ -398,7 +457,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
             {/* ── Cliente ── */}
             <div>
               <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wider">Cliente</label>
-              <div className="relative">
+              <div className="relative" ref={clientInputWrapRef}>
                 <input
                   type="text"
                   value={clientSearch}
@@ -411,8 +470,11 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                   }`}
                 />
                 {selectedClient && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#28AEA4] text-xs">✓</span>}
-                {clientOpen && filteredClients.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-hidden z-10 max-h-48 overflow-y-auto shadow-xl">
+                {clientOpen && filteredClients.length > 0 && clientDropdownStyle && (
+                  <div
+                    style={{ top: clientDropdownStyle.top, left: clientDropdownStyle.left, width: clientDropdownStyle.width, maxHeight: clientDropdownStyle.maxHeight }}
+                    className="fixed bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-y-auto z-50 shadow-xl"
+                  >
                     {filteredClients.map(c => (
                       <button key={c.id} onMouseDown={() => selectClient(c)}
                         className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-[#272727] transition-colors text-left">
@@ -422,8 +484,11 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                     ))}
                   </div>
                 )}
-                {clientOpen && clientSearch.trim().length > 0 && filteredClients.length === 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-[#272727] rounded-xl px-4 py-3 text-sm text-gray-600 z-10">
+                {clientOpen && clientSearch.trim().length > 0 && filteredClients.length === 0 && clientDropdownStyle && (
+                  <div
+                    style={{ top: clientDropdownStyle.top, left: clientDropdownStyle.left, width: clientDropdownStyle.width }}
+                    className="fixed bg-[#1a1a1a] border border-[#272727] rounded-xl px-4 py-3 text-sm text-gray-600 z-50"
+                  >
                     Nenhum cliente encontrado
                   </div>
                 )}
@@ -433,7 +498,7 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
             {/* ── Produto ── */}
             <div>
               <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wider">Adicionar Produto</label>
-              <div className="relative">
+              <div className="relative" ref={prodInputWrapRef}>
                 <input
                   type="text"
                   value={prodSearch}
@@ -443,10 +508,13 @@ export function QuoteFormModal({ open, title, submitLabel, savingLabel, clients,
                   placeholder="Digite o nome do produto…"
                   className="w-full bg-[#141414] border border-[#272727] text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#28AEA4]/50 placeholder-gray-700"
                 />
-                {prodOpen && prodSearch.trim().length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-hidden z-10 shadow-xl">
+                {prodOpen && prodSearch.trim().length > 0 && prodDropdownStyle && (
+                  <div
+                    style={{ top: prodDropdownStyle.top, left: prodDropdownStyle.left, width: prodDropdownStyle.width, maxHeight: prodDropdownStyle.maxHeight }}
+                    className="fixed bg-[#1a1a1a] border border-[#272727] rounded-xl overflow-hidden z-50 shadow-xl flex flex-col"
+                  >
                     {filteredProducts.length > 0 && (
-                      <div className="max-h-64 overflow-y-auto">
+                      <div className="overflow-y-auto flex-1 min-h-0">
                         {filteredProducts.slice(0, 8).map(p => {
                           const outOfStock = !p.is_kit && p.stock_quantity === 0
                           return (
