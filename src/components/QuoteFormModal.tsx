@@ -37,19 +37,22 @@ function useDropdownPosition(open: boolean, anchorRef: React.RefObject<HTMLEleme
       const viewportTop = vv?.offsetTop ?? 0
       const viewportBottom = viewportTop + (vv?.height ?? window.innerHeight)
       const gap = 6
-      const spaceBelow = viewportBottom - rect.bottom - gap
-      const spaceAbove = rect.top - viewportTop - gap
+      const spaceBelow = Math.max(viewportBottom - rect.bottom - gap, 0)
+      const spaceAbove = Math.max(rect.top - viewportTop - gap, 0)
+      // "Abaixo" nunca sobrepõe o campo (o topo da caixa começa depois do campo terminar),
+      // então é sempre a opção preferida — só usamos "acima" quando há claramente mais espaço lá,
+      // e nesse caso a altura é limitada exatamente ao espaço disponível para nunca invadir o campo.
       if (spaceBelow >= 120 || spaceBelow >= spaceAbove) {
         setStyle({
           top: rect.bottom + gap,
           left: rect.left,
           width: rect.width,
-          maxHeight: Math.min(preferredMaxHeight, Math.max(spaceBelow, 80)),
+          maxHeight: Math.min(preferredMaxHeight, Math.max(spaceBelow, 60)),
         })
       } else {
-        const maxHeight = Math.min(preferredMaxHeight, Math.max(spaceAbove, 80))
+        const maxHeight = Math.min(preferredMaxHeight, spaceAbove)
         setStyle({
-          top: Math.max(viewportTop + gap, rect.top - gap - maxHeight),
+          top: rect.top - gap - maxHeight,
           left: rect.left,
           width: rect.width,
           maxHeight,
