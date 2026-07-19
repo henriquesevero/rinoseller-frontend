@@ -68,6 +68,13 @@ const IconTag = () => (
     <circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/>
   </svg>
 )
+const IconFileSignature = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h6"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <path d="M15.5 17.5c1-2 2.5-3 4-2.5s.5 3-1.5 3.5c2 0 3 1 2.5 2.5"/>
+  </svg>
+)
 const IconUserCog = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -131,6 +138,12 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: '/dashboard/catalogos', label: 'Catálogos', icon: <IconBook /> },
       { to: '/dashboard/tabelas',   label: 'Tabelas',   icon: <IconTag />  },
+    ],
+  },
+  {
+    label: 'Documentações',
+    items: [
+      { to: '/dashboard/documentacoes', label: 'Documentações', icon: <IconFileSignature /> },
     ],
   },
 ]
