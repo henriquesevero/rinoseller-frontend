@@ -42,7 +42,7 @@ function buildBodyContent(client: Client, now: Date): string {
     <div class="top-bar"></div>
     <div class="header">
       <div>
-        <div class="brand-name">RinoSeller</div>
+        <div class="brand-name">Mirra Cosméticos</div>
         <div class="brand-sub">Comodato de Expositor</div>
       </div>
       <div>
@@ -58,7 +58,7 @@ function buildBodyContent(client: Client, now: Date): string {
       <div class="parties-grid">
         <div>
           <div class="field-label">Comodante</div>
-          <div class="field-value">RinoSeller</div>
+          <div class="field-value">Mirra Cosméticos</div>
         </div>
         <div>
           <div class="field-label">Comodatário</div>
@@ -92,7 +92,7 @@ function buildBodyContent(client: Client, now: Date): string {
     <div class="signatures">
       <div class="sign-block">
         <div class="sign-line"></div>
-        <div class="sign-name">RinoSeller</div>
+        <div class="sign-name">Mirra Cosméticos</div>
         <div class="sign-label">Comodante</div>
       </div>
       <div class="sign-block">
@@ -104,7 +104,7 @@ function buildBodyContent(client: Client, now: Date): string {
 
     <div class="footer">
       <div class="footer-info">
-        RinoSeller · <span class="footer-accent">RinoSeller</span><br>
+        Mirra Cosméticos · <span class="footer-accent">Emitido via RinoSeller</span><br>
         Emitido em ${now.toLocaleString('pt-BR')}
       </div>
     </div>
