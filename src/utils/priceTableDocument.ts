@@ -19,11 +19,10 @@ body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-s
 .hero-brand { color:#ffffff; font-size:25px; font-weight:800; letter-spacing:-.01em; margin-top:7px; line-height:1.15; }
 .hero-sub { color:#94a3b8; font-size:10px; margin-top:6px; }
 .body { padding:14px 56px 4px; }
-table { width:100%; border-collapse:collapse; }
-thead th { color:#94a3b8; font-size:7.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:0 0 4px; text-align:left; border-bottom:2px solid #0f4f49; }
+table { width:100%; border-collapse:collapse; border:1px solid #d7e4e2; }
+thead th { color:#64748b; font-size:7.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:5px 8px; text-align:left; background:#f3faf9; border:1px solid #d7e4e2; border-bottom:2px solid #0f4f49; }
 th.r,td.r { text-align:right; }
-tbody td { padding:3px 0; font-size:8.5px; color:#0f172a; border-bottom:1px solid #f1f5f9; }
-tbody tr:last-child td { border-bottom:none; }
+tbody td { padding:5px 8px; font-size:8.5px; color:#0f172a; border:1px solid #e2eeec; }
 .prod-name { font-weight:600; }
 .prod-price { font-weight:800; color:#0f766e; font-size:8.5px; font-variant-numeric:tabular-nums; }
 .footer { margin:14px 56px 0; padding:12px 0 20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }

@@ -36,13 +36,12 @@ body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-s
 .client-grid .full { grid-column:1/-1; }
 .field-label { font-size:9px; color:#94a3b8; text-transform:uppercase; letter-spacing:.1em; }
 .field-value { font-size:12px; color:#0f172a; font-weight:500; margin-top:2px; }
-table { width:100%; border-collapse:collapse; }
-thead th { background:#f8fafc; color:#64748b; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:9px 12px; text-align:left; border-top:1px solid #e2e8f0; border-bottom:1px solid #28AEA4; }
+table { width:100%; border-collapse:collapse; border:1px solid #e2e8f0; }
+thead th { background:#f8fafc; color:#64748b; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:9px 12px; text-align:left; border:1px solid #e2e8f0; border-bottom:1px solid #28AEA4; }
 th.center,td.center { text-align:center; }
 th.right,td.right { text-align:right; }
 tbody tr:nth-child(even) td { background:#f8fafc; }
-tbody td { padding:9px 12px; font-size:11px; border-bottom:1px solid #f1f5f9; color:#0f172a; }
-tbody tr:last-child td { border-bottom:none; }
+tbody td { padding:9px 12px; font-size:11px; border:1px solid #e2e8f0; color:#0f172a; }
 .totals { display:flex; justify-content:flex-end; margin-top:6px; }
 .totals-box { width:240px; }
 .totals-row { display:flex; justify-content:space-between; padding:7px 10px; font-size:11px; color:#64748b; }
@@ -127,7 +126,7 @@ function buildBodyContent(quote: Quote, client?: Client, kind: 'orcamento' | 'pe
             </tr>
             ${i.kit_items && i.kit_items.length > 0 ? `
             <tr>
-              <td colspan="4" style="padding:0 12px 9px 12px;border-bottom:1px solid #eee;font-size:10px;color:#888;font-style:italic;">
+              <td colspan="4" style="padding:0 12px 9px 12px;border:1px solid #e2e8f0;border-top:none;font-size:10px;color:#888;font-style:italic;">
                 Kit inclui: ${i.kit_items.map(ki => `${ki.quantity}x ${ki.product_name}`).join(' • ')}
               </td>
             </tr>` : ''}
