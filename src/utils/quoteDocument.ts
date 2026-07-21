@@ -174,11 +174,17 @@ function buildBodyContent(quote: Quote, client?: Client, kind: 'orcamento' | 'pe
 }
 
 // ── Gera PDF como Blob ────────────────────────────────────────────────────────
+// Pagina cortando apenas entre linhas da tabela ou entre blocos do documento
+// (nunca no meio de um texto), capturando cada página separadamente em vez de
+// fatiar uma única imagem por altura fixa.
+
+const CONTAINER_WIDTH = 794
+const A4_RATIO = 297 / 210 // altura/largura — mesma proporção em px
 
 async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' | 'pedido' = 'orcamento'): Promise<Blob> {
   const container = document.createElement('div')
   // Renderiza fora da tela (mas totalmente opaco) — opacity:0 faz o html2canvas capturar em branco
-  container.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff;pointer-events:none;'
+  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${CONTAINER_WIDTH}px;background:#fff;pointer-events:none;`
 
   const styleEl = document.createElement('style')
   styleEl.textContent = DOC_CSS
@@ -200,32 +206,49 @@ async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' 
   )
 
   try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      scrollX: 0,
-      scrollY: 0,
-    })
+    const pageHeightPx = CONTAINER_WIDTH * A4_RATIO
+    const totalHeight  = container.scrollHeight
+    const containerTop = container.getBoundingClientRect().top
 
-    const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
-    const pgW     = pdf.internal.pageSize.getWidth()
-    const pgH     = pdf.internal.pageSize.getHeight()
-    const imgW    = pgW
-    const imgH    = (canvas.height * pgW) / canvas.width
-    const imgData = canvas.toDataURL('image/jpeg', 0.85)
+    // Pontos seguros para cortar: o topo de cada linha da tabela e de cada
+    // bloco principal do documento (cabeçalho, seções, totais, rodapé etc.).
+    const blockTops = Array.from(container.querySelectorAll('.wrap > *, tbody tr'))
+      .map(el => el.getBoundingClientRect().top - containerTop)
+      .filter(y => y > 0)
+    const safeBreaks = [...new Set([...blockTops, totalHeight])].sort((a, b) => a - b)
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH)
+    const slices: { top: number; height: number }[] = []
+    let cursor = 0
+    while (cursor < totalHeight - 1) {
+      const limit = cursor + pageHeightPx
+      const candidates = safeBreaks.filter(y => y > cursor && y <= limit)
+      const end = candidates.length > 0 ? Math.max(...candidates) : Math.min(limit, totalHeight)
+      slices.push({ top: cursor, height: end - cursor })
+      cursor = end
+    }
 
-    // Adiciona páginas extras se necessário
-    let remaining = imgH - pgH
-    let offset    = -pgH
-    while (remaining > 0) {
-      pdf.addPage()
-      pdf.addImage(imgData, 'JPEG', 0, offset, imgW, imgH)
-      offset    -= pgH
-      remaining -= pgH
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
+    const pgW = pdf.internal.pageSize.getWidth()
+
+    for (let i = 0; i < slices.length; i++) {
+      const { top, height } = slices[i]
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: top,
+        width: CONTAINER_WIDTH,
+        height,
+      })
+      const imgData = canvas.toDataURL('image/jpeg', 0.9)
+      const imgH = (canvas.height * pgW) / canvas.width
+
+      if (i > 0) pdf.addPage()
+      pdf.addImage(imgData, 'JPEG', 0, 0, pgW, imgH)
     }
 
     return pdf.output('blob')
