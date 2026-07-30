@@ -17,42 +17,51 @@ function findClient(quote: Quote, clients: Client[]) {
 }
 
 // ── CSS compartilhado ─────────────────────────────────────────────────────────
+// `buildCss(scale)` gera o CSS com as folgas verticais (padding/margin) e o
+// tamanho das linhas da tabela multiplicados por `scale`. Em `scale=1` já é um
+// layout compacto (mais produtos cabem por página); quando o conteúdo transborda
+// a 1ª página por pouco, `generatePDFBlob` tenta escalas menores para evitar que
+// a 2ª página fique só com o bloco de assinatura.
 
-const DOC_CSS = `
+function buildCss(scale = 1): string {
+  const s = (n: number) => (n * scale).toFixed(2)
+  return `
 * { margin:0; padding:0; box-sizing:border-box; }
-body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#0f172a; background:#fff; }
-.wrap { padding:36px 44px; background:#fff; }
-.top-bar { height:3px; background:#28AEA4; margin:-36px -44px 32px; }
-.header { display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:20px; border-bottom:1px solid #e2e8f0; margin-bottom:24px; }
-.brand-name { font-size:18px; font-weight:800; letter-spacing:.03em; color:#0f172a; }
-.brand-sub { font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:#28AEA4; margin-top:4px; font-weight:600; }
-.doc-type { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.16em; color:#94a3b8; text-align:right; }
-.doc-number { font-size:20px; font-weight:800; text-align:right; color:#0f172a; margin-top:2px; }
-.doc-date { font-size:10px; color:#64748b; margin-top:4px; text-align:right; }
-.doc-status { display:inline-block; margin-top:6px; padding:3px 10px; border-radius:99px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; background:#f0fdf9; color:#0f766e; border:1px solid #99e6e0; float:right; clear:right; }
-.section { margin-bottom:20px; }
-.section-title { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; color:#94a3b8; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid #f1f5f9; }
-.client-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; }
+body, div { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:${s(12)}px; color:#0f172a; background:#fff; }
+.wrap { padding:${s(30)}px ${s(40)}px; background:#fff; }
+.top-bar { height:3px; background:#28AEA4; margin:-${s(30)}px -${s(40)}px ${s(22)}px; }
+.header { display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:${s(14)}px; border-bottom:1px solid #e2e8f0; margin-bottom:${s(16)}px; }
+.brand-name { font-size:${s(18)}px; font-weight:800; letter-spacing:.03em; color:#0f172a; }
+.brand-sub { font-size:${s(9)}px; letter-spacing:.2em; text-transform:uppercase; color:#28AEA4; margin-top:${s(4)}px; font-weight:600; }
+.doc-type { font-size:${s(10)}px; font-weight:700; text-transform:uppercase; letter-spacing:.16em; color:#94a3b8; text-align:right; }
+.doc-number { font-size:${s(20)}px; font-weight:800; text-align:right; color:#0f172a; margin-top:${s(2)}px; }
+.doc-date { font-size:${s(10)}px; color:#64748b; margin-top:${s(4)}px; text-align:right; }
+.doc-status { display:inline-block; margin-top:${s(6)}px; padding:${s(3)}px ${s(10)}px; border-radius:99px; font-size:${s(9)}px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; background:#f0fdf9; color:#0f766e; border:1px solid #99e6e0; float:right; clear:right; }
+.section { margin-bottom:${s(14)}px; }
+.section-title { font-size:${s(9)}px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; color:#94a3b8; margin-bottom:${s(6)}px; padding-bottom:${s(4)}px; border-bottom:1px solid #f1f5f9; }
+.client-grid { display:grid; grid-template-columns:1fr 1fr; gap:${s(6)}px ${s(28)}px; }
 .client-grid .full { grid-column:1/-1; }
-.field-label { font-size:9px; color:#94a3b8; text-transform:uppercase; letter-spacing:.1em; }
-.field-value { font-size:12px; color:#0f172a; font-weight:500; margin-top:2px; }
+.field-label { font-size:${s(9)}px; color:#94a3b8; text-transform:uppercase; letter-spacing:.1em; }
+.field-value { font-size:${s(12)}px; color:#0f172a; font-weight:500; margin-top:${s(2)}px; }
 table { width:100%; border-collapse:collapse; border:1px solid #e2e8f0; }
-thead th { background:#f8fafc; color:#64748b; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:9px 12px; text-align:left; border:1px solid #e2e8f0; border-bottom:1px solid #28AEA4; }
+thead th { background:#f8fafc; color:#64748b; font-size:${s(9)}px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:${s(6)}px ${s(10)}px; text-align:left; border:1px solid #e2e8f0; border-bottom:1px solid #28AEA4; }
 th.center,td.center { text-align:center; }
 th.right,td.right { text-align:right; }
 tbody tr:nth-child(even) td { background:#f8fafc; }
-tbody td { padding:9px 12px; font-size:11px; border:1px solid #e2e8f0; color:#0f172a; }
-.totals { display:flex; justify-content:flex-end; margin-top:6px; }
+tbody td { padding:${s(5)}px ${s(10)}px; font-size:${s(10.5)}px; border:1px solid #e2e8f0; color:#0f172a; }
+.kit-row td { padding:0 ${s(10)}px ${s(5)}px ${s(10)}px; border:1px solid #e2e8f0; border-top:none; font-size:${s(9.5)}px; color:#888; font-style:italic; }
+.totals { display:flex; justify-content:flex-end; margin-top:${s(4)}px; }
 .totals-box { width:240px; }
-.totals-row { display:flex; justify-content:space-between; padding:7px 10px; font-size:11px; color:#64748b; }
-.totals-row.grand { background:#f0fdf9; color:#0f766e; font-size:14px; font-weight:700; border-radius:8px; margin-top:3px; }
-.notes-box { margin-top:16px; padding:12px 14px; background:#f8fafc; border-left:3px solid #28AEA4; font-size:11px; color:#475569; line-height:1.5; border-radius:0 6px 6px 0; }
-.footer { margin-top:40px; padding-top:14px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; }
-.footer-info { font-size:9px; color:#94a3b8; line-height:1.7; }
+.totals-row { display:flex; justify-content:space-between; padding:${s(5)}px ${s(10)}px; font-size:${s(11)}px; color:#64748b; }
+.totals-row.grand { background:#f0fdf9; color:#0f766e; font-size:${s(14)}px; font-weight:700; border-radius:8px; margin-top:${s(3)}px; }
+.notes-box { margin-top:${s(10)}px; padding:${s(9)}px ${s(12)}px; background:#f8fafc; border-left:3px solid #28AEA4; font-size:${s(11)}px; color:#475569; line-height:1.5; border-radius:0 6px 6px 0; }
+.footer { margin-top:${s(20)}px; padding-top:${s(10)}px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; }
+.footer-info { font-size:${s(9)}px; color:#94a3b8; line-height:1.7; }
 .footer-accent { color:#28AEA4; font-weight:700; }
-.sign-line { width:180px; border-top:1px solid #cbd5e1; margin-bottom:4px; }
-.sign-label { font-size:9px; color:#94a3b8; letter-spacing:.08em; text-transform:uppercase; }
+.sign-line { width:180px; border-top:1px solid #cbd5e1; margin-bottom:${s(4)}px; }
+.sign-label { font-size:${s(9)}px; color:#94a3b8; letter-spacing:.08em; text-transform:uppercase; }
 `
+}
 
 // ── Conteúdo HTML do documento ────────────────────────────────────────────────
 
@@ -125,8 +134,8 @@ function buildBodyContent(quote: Quote, client?: Client, kind: 'orcamento' | 'pe
               <td class="right"><strong>${fmt(i.subtotal)}</strong></td>
             </tr>
             ${i.kit_items && i.kit_items.length > 0 ? `
-            <tr>
-              <td colspan="4" style="padding:0 12px 9px 12px;border:1px solid #e2e8f0;border-top:none;font-size:10px;color:#888;font-style:italic;">
+            <tr class="kit-row">
+              <td colspan="4">
                 Kit inclui: ${i.kit_items.map(ki => `${ki.quantity}x ${ki.product_name}`).join(' • ')}
               </td>
             </tr>` : ''}
@@ -187,7 +196,7 @@ async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' 
   container.style.cssText = `position:fixed;left:-99999px;top:0;width:${CONTAINER_WIDTH}px;background:#fff;pointer-events:none;`
 
   const styleEl = document.createElement('style')
-  styleEl.textContent = DOC_CSS
+  styleEl.textContent = buildCss(1)
   container.appendChild(styleEl)
 
   const bodyDiv = document.createElement('div')
@@ -207,6 +216,20 @@ async function generatePDFBlob(quote: Quote, client?: Client, kind: 'orcamento' 
 
   try {
     const pageHeightPx = CONTAINER_WIDTH * A4_RATIO
+
+    // Se o conteúdo transborda a 1ª página só por uma margem pequena (o caso
+    // clássico em que a tabela cabe mas o bloco de totais/assinatura empurra
+    // uns milímetros a mais), comprime as folgas progressivamente até caber
+    // tudo numa única página — evita uma 2ª página quase vazia só com a
+    // assinatura. Se o excesso for grande (muitos itens de verdade), mantém o
+    // layout normal e deixa paginar mesmo — aí a 2ª página vem com conteúdo real.
+    if (container.scrollHeight > pageHeightPx && container.scrollHeight <= pageHeightPx * 1.3) {
+      for (const scale of [0.95, 0.9, 0.85, 0.8]) {
+        styleEl.textContent = buildCss(scale)
+        if (container.scrollHeight <= pageHeightPx) break
+      }
+    }
+
     const totalHeight  = container.scrollHeight
     const containerTop = container.getBoundingClientRect().top
 
