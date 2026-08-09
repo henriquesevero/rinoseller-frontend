@@ -81,12 +81,13 @@ function openPrint(title: string, body: string) {
   </div>
 </body>
 </html>`
-  const w = window.open('', '_blank', 'width=900,height=700')
+  const w = window.open('', '_blank', 'width=900,height=700,noopener')
   if (!w) return
   w.document.write(html)
   w.document.close()
+  w.onafterprint = () => w.close()
   w.focus()
-  setTimeout(() => w.print(), 400)
+  setTimeout(() => { if (!w.closed) w.print() }, 400)
 }
 
 export function exportClientsPDF(clients: Client[]) {
